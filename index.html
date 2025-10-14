@@ -4,14 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tidé Hotels PMS</title>
+
+    <!-- Tailwind via CDN (fine to keep) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        darkMode: 'class', // Enable class-based dark mode
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              // You can keep custom colors here, but we will primarily use default Tailwind palette
               primary: {
                 '50': '#eff6ff',
                 '100': '#dbeafe',
@@ -28,23 +29,26 @@
             },
           },
         },
-      }
+      };
     </script>
-    <!-- Keep XLSX for Financials component which uses the global `XLSX` object -->
+
+    <!-- Keep XLSX for Financials component which uses the global XLSX object -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://aistudiocdn.com/react@^19.2.0",
-        "react/": "https://aistudiocdn.com/react@^19.2.0/",
-        "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "recharts": "https://aistudiocdn.com/recharts@^3.2.1"
-      }
-    }
-    </script>
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+</head>
+
   <body>
     <div id="root"></div>
+    <!-- IMPORTANT: This loads your React app -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
