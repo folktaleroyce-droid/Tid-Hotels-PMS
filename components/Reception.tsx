@@ -4,19 +4,15 @@ import { Card } from './common/Card.tsx';
 import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
 import type { HotelData, Room, Guest, Reservation } from '../types.ts';
-import { RoomStatus } from '../types.ts';
+import { RoomStatus, MaintenanceStatus } from '../types.ts';
 import { ROOM_STATUS_THEME, ID_TYPES } from '../constants.tsx';
 
 interface ReceptionProps {
     hotelData: HotelData;
 }
 
-const today = new Date().toISOString().split('T')[0];
-const tomorrow = new Date();
-tomorrow.setDate(new Date().getDate() + 1);
-const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-const INITIAL_FORM_STATE = {
+// Moved INITIAL_FORM_STATE inside the component to use fresh dates.
+const BASE_INITIAL_FORM_STATE = {
     guestName: '',
     guestEmail: '',
     guestPhone: '',
@@ -26,7 +22,6 @@ const INITIAL_FORM_STATE = {
     idNumber: '',
     idOtherType: '',
     address: '',
-    departureDate: tomorrowStr,
     adults: 1,
     children: 0,
     specialRequests: '',
@@ -34,14 +29,28 @@ const INITIAL_FORM_STATE = {
     roomRate: 0,
 };
 
-type FormState = typeof INITIAL_FORM_STATE;
+type FormState = ReturnType<typeof createInitialFormState>;
 type FormErrors = Partial<{[K in keyof FormState]: string}>;
+
+const createInitialFormState = (tomorrowStr: string) => ({
+    ...BASE_INITIAL_FORM_STATE,
+    departureDate: tomorrowStr,
+});
+
 
 export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     const { rooms, guests, reservations, updateRoomStatus, addTransaction, setGuests, setReservations, addSyncLogEntry } = hotelData;
     const [isCheckInModalOpen, setCheckInModalOpen] = useState(false);
     const [isCheckOutModalOpen, setCheckOutModalOpen] = useState(false);
     
+    // Moved date calculations inside the component to ensure they are always current.
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(new Date().getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    const INITIAL_FORM_STATE = createInitialFormState(tomorrowStr);
+
     const [selectedRoomForAction, setSelectedRoomForAction] = useState<Room | null>(null);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     
@@ -131,7 +140,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             return;
         }
 
-        const guestId = guests.length + 1;
+        const guestId = (guests.length > 0 ? Math.max(...guests.map(g => g.id)) : 0) + 1;
         const newGuest: Guest = { 
             id: guestId, 
             name: checkInForm.guestName, 
@@ -183,11 +192,17 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         }
     };
 
-    const todaysArrivals = reservations.filter(r => r.checkInDate === new Date().toISOString().split('T')[0]);
+    const todaysArrivals = reservations.filter(r => r.checkInDate === today);
     const availableRoomsForCheckIn = rooms.filter(r => r.status === RoomStatus.Vacant && (!selectedReservation || r.type === selectedReservation.roomType));
 
-    const RoomCardComponent: React.FC<{ room: Room }> = ({ room }) => {
+    const findGuestByRoom = (room: Room) => guests.find(g => g.id === room.guestId);
+
+    const RoomCardComponent: React.FC<{ room: Room; hotelData: HotelData }> = ({ room, hotelData }) => {
         const guest = findGuestByRoom(room);
+        const maintenanceRequest = hotelData.maintenanceRequests.find(
+            req => req.roomId === room.id && req.status !== MaintenanceStatus.Completed
+        );
+
         return (
             <div className={`p-4 rounded-lg shadow-md border-l-4 ${ROOM_STATUS_THEME[room.status].light} ${ROOM_STATUS_THEME[room.status].dark}`} style={{ borderLeftColor: ROOM_STATUS_THEME[room.status].fill }}>
                 <div className="flex justify-between items-center">
@@ -198,6 +213,14 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                 </div>
                 <p className={`text-sm ${ROOM_STATUS_THEME[room.status].text}`}>{room.type}</p>
                 {room.status === RoomStatus.Occupied && guest && <p className="text-xs mt-1">Guest: {guest.name}</p>}
+                
+                {room.status === RoomStatus.OutOfOrder && (
+                    <div className="mt-2 text-xs p-2 rounded bg-red-200/50 dark:bg-red-900/50 text-red-700 dark:text-red-300">
+                        <p className="font-bold">Maintenance:</p>
+                        <p>{maintenanceRequest?.description || 'General maintenance.'}</p>
+                    </div>
+                )}
+                
                 <div className="mt-4 flex flex-col space-y-2">
                     {room.status === RoomStatus.Vacant && <Button onClick={() => handleOpenCheckIn(room)}>Walk-in</Button>}
                     {room.status === RoomStatus.Occupied && <Button variant="secondary" onClick={() => handleOpenCheckOut(room)}>Check-Out</Button>}
@@ -206,14 +229,13 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         );
     };
 
-    const findGuestByRoom = (room: Room) => guests.find(g => g.id === room.guestId);
     
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
                 <Card title="Room Management">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {rooms.map(room => <RoomCardComponent key={room.id} room={room} />)}
+                        {rooms.map(room => <RoomCardComponent key={room.id} room={room} hotelData={hotelData} />)}
                     </div>
                 </Card>
             </div>

@@ -151,9 +151,19 @@ export const useHotelData = (): HotelData => {
   };
 
   const updateMaintenanceRequestStatus = (requestId: number, status: MaintenanceStatus) => {
+    const requestToUpdate = maintenanceRequests.find(req => req.id === requestId);
+
     setMaintenanceRequests(prev => 
       prev.map(req => req.id === requestId ? { ...req, status } : req)
     );
+
+    if (status === MaintenanceStatus.Completed && requestToUpdate?.roomId) {
+      const room = rooms.find(r => r.id === requestToUpdate.roomId);
+      if (room && room.status === RoomStatus.OutOfOrder) {
+        updateRoomStatus(room.id, RoomStatus.Dirty);
+        addSyncLogEntry(`Maintenance for Room ${room.number} completed. Room is now available for housekeeping.`, 'success');
+      }
+    }
   };
 
   return {

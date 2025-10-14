@@ -26,9 +26,9 @@ export const INITIAL_ROOMS: Room[] = [
   { id: 3, number: '103', type: 'Standard', rate: 150, status: RoomStatus.Dirty },
   { id: 4, number: '201', type: 'Deluxe', rate: 250, status: RoomStatus.Vacant },
   { id: 5, number: '202', type: 'Deluxe', rate: 250, status: RoomStatus.Occupied, guestId: 2 },
-  { id: 6, number: '203', type: 'Deluxe', rate: 250, status: RoomStatus.OutOfOrder },
+  { id: 6, number: '203', type: 'Deluxe', rate: 250, status: RoomStatus.Dirty },
   { id: 7, number: '301', type: 'Suite', rate: 400, status: RoomStatus.Occupied, guestId: 3 },
-  { id: 8, number: '302', type: 'Suite', rate: 400, status: RoomStatus.Cleaning },
+  { id: 8, number: '302', type: 'Suite', rate: 400, status: RoomStatus.Vacant },
 ];
 
 export const INITIAL_GUESTS: Guest[] = [
