@@ -1,8 +1,9 @@
 import { useState } from 'react';
 // FIX: Added file extensions to fix module resolution errors.
-import { RoomStatus } from '../types.ts';
-import type { Room, Guest, Transaction, Order, Employee, HotelData, Reservation, SyncLogEntry } from '../types.ts';
-import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS } from '../constants.tsx';
+// FIX: Imported MaintenanceStatus as a value to use the enum member, and removed it from the type-only import.
+import { RoomStatus, MaintenanceStatus } from '../types.ts';
+import type { Room, Guest, Transaction, Order, Employee, HotelData, Reservation, SyncLogEntry, MaintenanceRequest } from '../types.ts';
+import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS, INITIAL_MAINTENANCE_REQUESTS } from '../constants.tsx';
 
 const getAvailability = (rooms: Room[]) => {
     const availability: { [key: string]: number } = {};
@@ -22,6 +23,7 @@ export const useHotelData = (): HotelData => {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
   const [syncLog, setSyncLog] = useState<SyncLogEntry[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>(INITIAL_MAINTENANCE_REQUESTS);
   const [stopSell, setStopSell] = useState<{ [roomType: string]: boolean }>({});
 
   const addSyncLogEntry = (message: string, level: SyncLogEntry['level'] = 'info') => {
@@ -113,6 +115,31 @@ export const useHotelData = (): HotelData => {
     }));
     addSyncLogEntry(`Guest profile for ${guestName} updated. Pushing changes to ${bookingSource}.`, 'info');
   };
+  
+  const addMaintenanceRequest = (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => {
+    const newRequest: MaintenanceRequest = {
+      ...request,
+      id: maintenanceRequests.length > 0 ? Math.max(...maintenanceRequests.map(r => r.id)) + 1 : 1,
+      reportedAt: new Date().toISOString().split('T')[0],
+      // FIX: Used MaintenanceStatus enum member instead of a string literal to fix a type error.
+      status: MaintenanceStatus.Reported,
+    };
+    setMaintenanceRequests(prev => [newRequest, ...prev]);
+
+    if (newRequest.roomId && newRequest.priority === 'High') {
+        const room = rooms.find(r => r.id === newRequest.roomId);
+        if (room && room.status !== RoomStatus.OutOfOrder) {
+            updateRoomStatus(newRequest.roomId, RoomStatus.OutOfOrder);
+            addSyncLogEntry(`Room ${room.number} set to 'Out of Order' due to high priority maintenance request.`, 'warn');
+        }
+    }
+  };
+
+  const updateMaintenanceRequestStatus = (requestId: number, status: MaintenanceStatus) => {
+    setMaintenanceRequests(prev => 
+      prev.map(req => req.id === requestId ? { ...req, status } : req)
+    );
+  };
 
   return {
     rooms,
@@ -123,12 +150,14 @@ export const useHotelData = (): HotelData => {
     employees,
     syncLog,
     stopSell,
+    maintenanceRequests,
     setRooms,
     setGuests,
     setReservations,
     setTransactions,
     setOrders,
     setEmployees,
+    setMaintenanceRequests,
     setStopSell,
     addOrder,
     updateRoomStatus,
@@ -138,5 +167,7 @@ export const useHotelData = (): HotelData => {
     addSyncLogEntry,
     updateRate,
     updateGuestDetails,
+    addMaintenanceRequest,
+    updateMaintenanceRequestStatus,
   };
 };

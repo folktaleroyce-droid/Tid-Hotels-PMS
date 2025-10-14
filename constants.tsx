@@ -1,5 +1,5 @@
 // FIX: Added file extension for types import.
-import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation } from './types.ts';
+import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority } from './types.ts';
 
 const today = new Date();
 const tomorrow = new Date(today);
@@ -90,6 +90,35 @@ export const INITIAL_RESERVATIONS: Reservation[] = [
     { id: 2, guestName: 'Peter Parker', guestEmail: 'peter@dailybugle.com', guestPhone: '555-0102', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Standard', ota: 'Expedia' },
 ];
 
+export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [
+    {
+        id: 1,
+        roomId: 6,
+        location: 'Room 203',
+        description: 'Leaky faucet in the bathroom sink.',
+        reportedAt: threeDaysAgo.toISOString().split('T')[0],
+        status: MaintenanceStatus.Completed,
+        priority: MaintenancePriority.Medium,
+    },
+    {
+        id: 2,
+        roomId: 8,
+        location: 'Room 302',
+        description: 'A/C unit is not cooling properly.',
+        reportedAt: yesterday.toISOString().split('T')[0],
+        status: MaintenanceStatus.InProgress,
+        priority: MaintenancePriority.High,
+    },
+    {
+        id: 3,
+        location: 'Lobby',
+        description: 'Burnt out lightbulb in the main chandelier.',
+        reportedAt: today.toISOString().split('T')[0],
+        status: MaintenanceStatus.Reported,
+        priority: MaintenancePriority.Low,
+    },
+];
+
 export const MOCK_OTA_RESERVATIONS: Omit<Reservation, 'id'>[] = [
     { guestName: 'Steve Rogers', guestEmail: 'steve@avengers.com', guestPhone: '555-0103', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Deluxe', ota: 'Agoda' },
     { guestName: 'Tony Stark', guestEmail: 'tony@stark.com', guestPhone: '555-0104', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Suite', ota: 'Trivago' },
@@ -101,6 +130,12 @@ export const ROOM_STATUS_THEME: { [key in RoomStatus]: { light: string; dark: st
   [RoomStatus.Dirty]: { light: 'bg-yellow-100', dark: 'dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-200', badge: 'bg-yellow-500', fill: '#F59E0B' },
   [RoomStatus.Cleaning]: { light: 'bg-indigo-100', dark: 'dark:bg-indigo-900', text: 'text-indigo-800 dark:text-indigo-200', badge: 'bg-indigo-500', fill: '#6366F1' },
   [RoomStatus.OutOfOrder]: { light: 'bg-red-100', dark: 'dark:bg-red-900', text: 'text-red-800 dark:text-red-200', badge: 'bg-red-600', fill: '#EF4444' },
+};
+
+export const MAINTENANCE_PRIORITY_THEME: { [key in MaintenancePriority]: { text: string; bg: string; } } = {
+  [MaintenancePriority.Low]: { text: 'text-green-800 dark:text-green-200', bg: 'bg-green-100 dark:bg-green-900' },
+  [MaintenancePriority.Medium]: { text: 'text-yellow-800 dark:text-yellow-200', bg: 'bg-yellow-100 dark:bg-yellow-900' },
+  [MaintenancePriority.High]: { text: 'text-red-800 dark:text-red-200', bg: 'bg-red-100 dark:bg-red-900' },
 };
 
 export const MENU_ITEMS = [

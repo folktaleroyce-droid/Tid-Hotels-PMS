@@ -78,6 +78,28 @@ export interface SyncLogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
 }
 
+export enum MaintenanceStatus {
+  Reported = 'Reported',
+  InProgress = 'In Progress',
+  Completed = 'Completed',
+}
+
+export enum MaintenancePriority {
+    Low = 'Low',
+    Medium = 'Medium',
+    High = 'High',
+}
+
+export interface MaintenanceRequest {
+  id: number;
+  roomId?: number;
+  location: string;
+  description: string;
+  reportedAt: string;
+  status: MaintenanceStatus;
+  priority: MaintenancePriority;
+}
+
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
@@ -86,6 +108,7 @@ export interface HotelData {
   orders: Order[];
   employees: Employee[];
   syncLog: SyncLogEntry[];
+  maintenanceRequests: MaintenanceRequest[];
   stopSell: { [roomType: string]: boolean };
   // FIX: Replaced React.Dispatch and React.SetStateAction with imported types.
   setRooms: Dispatch<SetStateAction<Room[]>>;
@@ -94,6 +117,7 @@ export interface HotelData {
   setTransactions: Dispatch<SetStateAction<Transaction[]>>;
   setOrders: Dispatch<SetStateAction<Order[]>>;
   setEmployees: Dispatch<SetStateAction<Employee[]>>;
+  setMaintenanceRequests: Dispatch<SetStateAction<MaintenanceRequest[]>>;
   setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
@@ -103,4 +127,6 @@ export interface HotelData {
   addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => void;
   updateRate: (roomType: string, newRate: number) => void;
   updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => void;
+  addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
+  updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
 }
