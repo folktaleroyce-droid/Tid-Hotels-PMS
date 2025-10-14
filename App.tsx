@@ -13,8 +13,9 @@ import { useHotelData } from './hooks/useHotelData.ts';
 import { useTheme } from './contexts/ThemeContext.tsx';
 import { ChannelManager } from './components/ChannelManager.tsx';
 import { Maintenance } from './components/Maintenance.tsx';
+import { Financials } from './components/Financials.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -37,6 +38,8 @@ function App() {
         return <Kitchen hotelData={hotelData} />;
       case 'accounts':
         return <Accounts hotelData={hotelData} />;
+      case 'financials':
+        return <Financials hotelData={hotelData} />;
       case 'people-and-culture':
         return <PeopleAndCulture hotelData={hotelData} />;
       case 'channel-manager':
@@ -51,7 +54,7 @@ function App() {
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-slate-900 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-slate-900 p-6 print:bg-white dark:print:bg-white print:p-0">
           {renderView()}
         </main>
       </div>

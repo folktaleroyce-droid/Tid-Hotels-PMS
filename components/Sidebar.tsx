@@ -1,6 +1,6 @@
 import React from 'react';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials';
 
 interface SidebarProps {
   currentView: View;
@@ -40,12 +40,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView })
     { view: 'restaurant', label: 'Restaurant', icon: <RestaurantIcon /> },
     { view: 'kitchen', label: 'Kitchen', icon: <KitchenIcon /> },
     { view: 'accounts', label: 'Accounts', icon: <AccountsIcon /> },
+    { view: 'financials', label: 'Financials', icon: <FinancialsIcon /> },
     { view: 'channel-manager', label: 'Channel Manager', icon: <LinkIcon /> },
     { view: 'people-and-culture', label: 'People & Culture', icon: <PeopleIcon /> },
   ];
 
   return (
-    <aside className="w-64 bg-white dark:bg-slate-800 p-4 border-r border-slate-200 dark:border-slate-700 flex flex-col">
+    <aside className="w-64 bg-white dark:bg-slate-800 p-4 border-r border-slate-200 dark:border-slate-700 flex flex-col print:hidden">
       <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-8">
         Tidé Hotels PMS
       </div>
@@ -86,6 +87,9 @@ const KitchenIcon = () => (
 );
 const AccountsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+);
+const FinancialsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
 );
 const PeopleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>

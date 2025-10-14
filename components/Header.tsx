@@ -6,7 +6,7 @@ export const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="bg-white dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+    <header className="bg-white dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center print:hidden">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Tidé Hotels PMS</h1>
       <button
         onClick={toggleTheme}

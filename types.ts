@@ -9,6 +9,12 @@ export enum RoomStatus {
   OutOfOrder = 'Out of Order',
 }
 
+export enum PaymentStatus {
+  Paid = 'Paid',
+  Pending = 'Pending',
+  Owing = 'Owing',
+}
+
 export interface Room {
   id: number;
   number: string;
@@ -23,8 +29,11 @@ export interface Guest {
   name: string;
   email: string;
   phone: string;
+  birthdate: string;
   nationality?: string;
-  idNumber?: string;
+  idType: string;
+  idNumber: string;
+  idOtherType?: string;
   address?: string;
   arrivalDate: string;
   departureDate: string;

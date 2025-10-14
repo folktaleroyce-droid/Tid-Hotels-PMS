@@ -5,7 +5,7 @@ import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
 import type { HotelData, Room, Guest, Reservation } from '../types.ts';
 import { RoomStatus } from '../types.ts';
-import { ROOM_STATUS_THEME } from '../constants.tsx';
+import { ROOM_STATUS_THEME, ID_TYPES } from '../constants.tsx';
 
 interface ReceptionProps {
     hotelData: HotelData;
@@ -20,15 +20,22 @@ const INITIAL_FORM_STATE = {
     guestName: '',
     guestEmail: '',
     guestPhone: '',
+    birthdate: '',
     nationality: '',
+    idType: '',
     idNumber: '',
+    idOtherType: '',
     address: '',
     departureDate: tomorrowStr,
     adults: 1,
     children: 0,
     specialRequests: '',
     roomId: 0,
+    roomRate: 0,
 };
+
+type FormState = typeof INITIAL_FORM_STATE;
+type FormErrors = Partial<{[K in keyof FormState]: string}>;
 
 export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     const { rooms, guests, reservations, updateRoomStatus, addTransaction, setGuests, setReservations, addSyncLogEntry } = hotelData;
@@ -38,11 +45,13 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     const [selectedRoomForAction, setSelectedRoomForAction] = useState<Room | null>(null);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     
-    const [checkInForm, setCheckInForm] = useState(INITIAL_FORM_STATE);
+    const [checkInForm, setCheckInForm] = useState<FormState>(INITIAL_FORM_STATE);
+    const [errors, setErrors] = useState<FormErrors>({});
 
     const handleOpenCheckIn = (room: Room) => {
         setSelectedReservation(null);
-        setCheckInForm({ ...INITIAL_FORM_STATE, roomId: room.id });
+        setCheckInForm({ ...INITIAL_FORM_STATE, roomId: room.id, roomRate: room.rate });
+        setErrors({});
         setCheckInModalOpen(true);
     };
 
@@ -60,7 +69,9 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             guestPhone: reservation.guestPhone,
             departureDate: reservation.checkOutDate,
             roomId: availableRoom.id,
+            roomRate: availableRoom.rate,
         });
+        setErrors({});
         setCheckInModalOpen(true);
     };
 
@@ -75,13 +86,44 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         setSelectedRoomForAction(null);
         setSelectedReservation(null);
         setCheckInForm(INITIAL_FORM_STATE);
+        setErrors({});
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+        const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+
+        if (!checkInForm.guestName.trim()) newErrors.guestName = "Guest name is required.";
+        
+        if (!checkInForm.guestEmail.trim()) {
+            newErrors.guestEmail = "Email is required.";
+        } else if (!emailRegex.test(checkInForm.guestEmail)) {
+            newErrors.guestEmail = "Please enter a valid email format.";
+        }
+
+        if (!checkInForm.guestPhone.trim()) {
+            newErrors.guestPhone = "Phone number is required.";
+        } else if (!phoneRegex.test(checkInForm.guestPhone)) {
+            newErrors.guestPhone = "Please enter a valid phone number format.";
+        }
+        
+        if (!checkInForm.birthdate) newErrors.birthdate = "Birthdate is required.";
+        if (!checkInForm.idType) newErrors.idType = "ID Type is required.";
+        if (checkInForm.idType === 'Other' && !checkInForm.idOtherType.trim()) newErrors.idOtherType = "Please specify ID type.";
+        if (!checkInForm.idNumber.trim()) newErrors.idNumber = "ID number is required.";
+        if (!checkInForm.roomRate || checkInForm.roomRate <= 0) newErrors.roomRate = "A valid room rate is required.";
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleCheckIn = () => {
-        const roomToCheckIn = rooms.find(r => r.id === checkInForm.roomId);
+        if (!validateForm()) return;
 
-        if (!roomToCheckIn || !checkInForm.guestName) {
-            alert('Guest name and a valid room are required.');
+        const roomToCheckIn = rooms.find(r => r.id === checkInForm.roomId);
+        if (!roomToCheckIn) {
+            alert('A valid room is required.');
             return;
         }
         if (roomToCheckIn.status !== RoomStatus.Vacant) {
@@ -95,8 +137,11 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             name: checkInForm.guestName, 
             email: checkInForm.guestEmail, 
             phone: checkInForm.guestPhone, 
+            birthdate: checkInForm.birthdate,
             nationality: checkInForm.nationality,
+            idType: checkInForm.idType,
             idNumber: checkInForm.idNumber,
+            idOtherType: checkInForm.idType === 'Other' ? checkInForm.idOtherType : undefined,
             address: checkInForm.address,
             arrivalDate: today,
             departureDate: checkInForm.departureDate,
@@ -110,7 +155,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         
         setGuests(prev => [...prev, newGuest]);
         updateRoomStatus(roomToCheckIn.id, RoomStatus.Occupied, guestId);
-        addTransaction({ guestId, description: `Room Charge - ${roomToCheckIn.type}`, amount: roomToCheckIn.rate, date: today });
+        addTransaction({ guestId, description: `Room Charge - ${roomToCheckIn.type}`, amount: checkInForm.roomRate, date: today });
         addSyncLogEntry(`New guest ${newGuest.name} checked into Room ${newGuest.roomNumber}. Pushing update to ${newGuest.bookingSource}.`, 'success');
 
         if (selectedReservation) {
@@ -121,7 +166,12 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
 
     const handleCheckOut = () => {
         if (selectedRoomForAction) {
+            const guest = guests.find(g => g.id === selectedRoomForAction.guestId);
             updateRoomStatus(selectedRoomForAction.id, RoomStatus.Dirty);
+            if (guest) {
+                addSyncLogEntry(`Email receipt sent to ${guest.email}.`, 'success');
+                addSyncLogEntry(`Automated thank you message scheduled for ${guest.name}.`, 'info');
+            }
         }
         handleCloseModals();
     };
@@ -187,31 +237,47 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             </div>
 
             <Modal isOpen={isCheckInModalOpen} onClose={handleCloseModals} title={selectedReservation ? `Reservation Check-In` : `Walk-in Guest`}>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Assign Room*</label>
-                            <select value={checkInForm.roomId} onChange={e => setCheckInForm({...checkInForm, roomId: parseInt(e.target.value)})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">
-                                {availableRoomsForCheckIn.map(room => (
-                                    <option key={room.id} value={room.id}>Room {room.number} ({room.type})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                           <label className="block text-sm font-medium mb-1">Departure Date*</label>
-                           <input type="date" value={checkInForm.departureDate} min={tomorrowStr} onChange={e => setCheckInForm({...checkInForm, departureDate: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
-                        </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Guest Name*</label>
                             <input type="text" value={checkInForm.guestName} onChange={e => setCheckInForm({...checkInForm, guestName: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                            {errors.guestName && <p className="text-red-500 text-xs mt-1">{errors.guestName}</p>}
                         </div>
                          <div>
-                            <label className="block text-sm font-medium mb-1">Email</label>
+                            <label className="block text-sm font-medium mb-1">Email*</label>
                             <input type="email" value={checkInForm.guestEmail} onChange={e => setCheckInForm({...checkInForm, guestEmail: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                            {errors.guestEmail && <p className="text-red-500 text-xs mt-1">{errors.guestEmail}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Phone</label>
+                            <label className="block text-sm font-medium mb-1">Phone*</label>
                             <input type="tel" value={checkInForm.guestPhone} onChange={e => setCheckInForm({...checkInForm, guestPhone: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                            {errors.guestPhone && <p className="text-red-500 text-xs mt-1">{errors.guestPhone}</p>}
+                        </div>
+                        <div>
+                           <label className="block text-sm font-medium mb-1">Birthdate*</label>
+                           <input type="date" value={checkInForm.birthdate} onChange={e => setCheckInForm({...checkInForm, birthdate: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                           {errors.birthdate && <p className="text-red-500 text-xs mt-1">{errors.birthdate}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">ID Type*</label>
+                            <select value={checkInForm.idType} onChange={e => setCheckInForm({...checkInForm, idType: e.target.value, idOtherType: ''})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">
+                                <option value="" disabled>Select ID Type</option>
+                                {ID_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                            </select>
+                            {errors.idType && <p className="text-red-500 text-xs mt-1">{errors.idType}</p>}
+                        </div>
+                        {checkInForm.idType === 'Other' && (
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Specify ID Type*</label>
+                                <input type="text" value={checkInForm.idOtherType} onChange={e => setCheckInForm({...checkInForm, idOtherType: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                                {errors.idOtherType && <p className="text-red-500 text-xs mt-1">{errors.idOtherType}</p>}
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">ID Number*</label>
+                            <input type="text" value={checkInForm.idNumber} onChange={e => setCheckInForm({...checkInForm, idNumber: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                            {errors.idNumber && <p className="text-red-500 text-xs mt-1">{errors.idNumber}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Nationality</label>
@@ -221,18 +287,35 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                            <label className="block text-sm font-medium mb-1">Address</label>
                            <input type="text" value={checkInForm.address} onChange={e => setCheckInForm({...checkInForm, address: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">ID / Passport Number</label>
-                            <input type="text" value={checkInForm.idNumber} onChange={e => setCheckInForm({...checkInForm, idNumber: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
-                        </div>
-                        <div className="flex space-x-2">
-                             <div>
-                                <label className="block text-sm font-medium mb-1">Adults</label>
-                                <input type="number" value={checkInForm.adults} min="1" onChange={e => setCheckInForm({...checkInForm, adults: parseInt(e.target.value) || 1})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+                           <div>
+                                <label className="block text-sm font-medium mb-1">Assign Room*</label>
+                                <select value={checkInForm.roomId} onChange={e => setCheckInForm({...checkInForm, roomId: parseInt(e.target.value)})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" disabled={selectedReservation !== null}>
+                                    {availableRoomsForCheckIn.map(room => (
+                                        <option key={room.id} value={room.id}>Room {room.number} ({room.type})</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Children</label>
-                                <input type="number" value={checkInForm.children} min="0" onChange={e => setCheckInForm({...checkInForm, children: parseInt(e.target.value) || 0})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                                <label className="block text-sm font-medium mb-1">Room Rate ($)*</label>
+                                <input type="number" value={checkInForm.roomRate} onChange={e => setCheckInForm({...checkInForm, roomRate: parseFloat(e.target.value) || 0})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                                {errors.roomRate && <p className="text-red-500 text-xs mt-1">{errors.roomRate}</p>}
+                            </div>
+                        </div>
+                        <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                            <div>
+                               <label className="block text-sm font-medium mb-1">Departure*</label>
+                               <input type="date" value={checkInForm.departureDate} min={tomorrowStr} onChange={e => setCheckInForm({...checkInForm, departureDate: e.target.value})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                            </div>
+                             <div className="flex space-x-2 col-span-2">
+                                 <div>
+                                    <label className="block text-sm font-medium mb-1">Adults</label>
+                                    <input type="number" value={checkInForm.adults} min="1" onChange={e => setCheckInForm({...checkInForm, adults: parseInt(e.target.value) || 1})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Children</label>
+                                    <input type="number" value={checkInForm.children} min="0" onChange={e => setCheckInForm({...checkInForm, children: parseInt(e.target.value) || 0})} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
+                                </div>
                             </div>
                         </div>
                         <div className="md:col-span-2">
@@ -240,15 +323,16 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                             <textarea value={checkInForm.specialRequests} onChange={e => setCheckInForm({...checkInForm, specialRequests: e.target.value})} rows={2} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"></textarea>
                         </div>
                     </div>
-                    <div className="flex justify-end space-x-2 pt-4">
-                        <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
-                        <Button onClick={handleCheckIn}>Confirm Check-In</Button>
-                    </div>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
+                    <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
+                    <Button onClick={handleCheckIn}>Confirm Check-In</Button>
                 </div>
             </Modal>
             
             <Modal isOpen={isCheckOutModalOpen} onClose={handleCloseModals} title={`Check-Out from Room ${selectedRoomForAction?.number}`}>
                 <p>Are you sure you want to check out the guest from Room {selectedRoomForAction?.number}?</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">An email receipt will be sent automatically, and a thank you message will be scheduled.</p>
                 <div className="flex justify-end space-x-2 pt-6">
                     <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
                     <Button onClick={handleCheckOut}>Confirm Check-Out</Button>

@@ -45,29 +45,44 @@ export const useHotelData = (): HotelData => {
   };
 
   const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
-    const oldAvailability = getAvailability(rooms);
+    const roomToUpdate = rooms.find(r => r.id === roomId);
+
+    // Do nothing if room is not found or status is already the same
+    if (!roomToUpdate || roomToUpdate.status === status) {
+      return;
+    }
     
-    setRooms(prevRooms => {
-        const newRooms = prevRooms.map(room =>
-            room.id === roomId ? { ...room, status, guestId: status === RoomStatus.Occupied ? guestId : undefined } : room
-        );
+    const oldStatus = roomToUpdate.status;
+    const oldAvailability = getAvailability(rooms);
 
-        const newAvailability = getAvailability(newRooms);
-        // FIX: The original method of getting unique room types using `new Set()` was causing a TypeScript
-        // inference issue, resulting in the `type` variable being `unknown` and causing an indexing error.
-        // Replaced it with a `filter`-based approach to ensure correct type inference.
-        // Also made the comparison more robust by handling potentially undefined availability counts.
-        const roomTypes = newRooms
-            .map(r => r.type)
-            .filter((value, index, self) => self.indexOf(value) === index);
+    const newRooms = rooms.map(room => {
+      if (room.id === roomId) {
+        // If the new status is not 'Occupied', the guestId should be cleared.
+        const newGuestId = status === RoomStatus.Occupied ? guestId : undefined;
+        return { ...room, status, guestId: newGuestId };
+      }
+      return room;
+    });
 
-        roomTypes.forEach(type => {
-            if ((oldAvailability[type] || 0) !== (newAvailability[type] || 0)) {
-                addSyncLogEntry(`Availability change for ${type} rooms detected. Pushing update to all channels.`, 'info');
-            }
-        });
+    // Atomically update the state
+    setRooms(newRooms);
 
-        return newRooms;
+    // --- Perform side-effects after state update ---
+
+    // Log the specific status change to provide immediate feedback, as requested.
+    addSyncLogEntry(`Room ${roomToUpdate.number} status updated from ${oldStatus} to ${status}.`, 'info');
+
+    // Check for changes in room availability and log for OTA sync simulation.
+    const newAvailability = getAvailability(newRooms);
+    const roomTypes = [...new Set(newRooms.map(r => r.type))];
+
+    // FIX: Explicitly type `type` as a string to resolve an indexing error where `type` was inferred as `unknown`.
+    roomTypes.forEach((type: string) => {
+      const oldAvail = oldAvailability[type] || 0;
+      const newAvail = newAvailability[type] || 0;
+      if (oldAvail !== newAvail) {
+        addSyncLogEntry(`Availability for ${type} rooms changed: ${oldAvail} -> ${newAvail}. Pushing update to channels.`, 'info');
+      }
     });
   };
   

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from './common/Card.tsx';
-import type { HotelData } from '../types.ts';
-import { RoomStatus } from '../types.ts';
+import type { HotelData, Transaction, Guest } from '../types.ts';
+import { RoomStatus, PaymentStatus } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ROOM_STATUS_THEME, MOCK_OTA_RESERVATIONS } from '../constants.tsx';
+import { PaymentStatusBadge } from './common/PaymentStatusBadge.tsx';
 
 interface DashboardProps {
     hotelData: HotelData;
@@ -22,6 +23,18 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
     </Card>
 );
 
+const calculateBalance = (guestId: number, transactions: Transaction[]): number => {
+    return transactions
+        .filter(t => t.guestId === guestId)
+        .reduce((acc, t) => acc + t.amount, 0);
+};
+
+const getPaymentStatus = (balance: number, rate: number): PaymentStatus => {
+    if (balance <= 0.01) return PaymentStatus.Paid;
+    if (balance > rate) return PaymentStatus.Owing;
+    return PaymentStatus.Pending;
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
     const { rooms, guests, orders, transactions, reservations, addReservation } = hotelData;
     const { theme } = useTheme();
@@ -36,6 +49,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
             alert("No more mock OTA reservations to sync.");
         }
     };
+    
+    const guestsWithBalance = useMemo(() => {
+        return rooms
+            .filter(r => r.status === RoomStatus.Occupied && r.guestId)
+            .map(room => {
+                const guest = guests.find(g => g.id === room.guestId);
+                if (!guest) return null;
+
+                const balance = calculateBalance(guest.id, transactions);
+                if (balance <= 0.01) return null;
+
+                const status = getPaymentStatus(balance, room.rate);
+                return { guest, room, balance, status };
+            })
+            .filter((item): item is { guest: Guest; room: typeof rooms[0]; balance: number; status: PaymentStatus } => item !== null)
+            .sort((a, b) => b.balance - a.balance);
+    }, [rooms, guests, transactions]);
+
 
     // KPI Calculations
     const occupiedRooms = rooms.filter(r => r.status === RoomStatus.Occupied).length;
@@ -80,38 +111,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                 <StatCard title="Available Rooms" value={availableRooms} icon={<KeyIcon />} />
             </div>
 
-            {/* OTA & Arrivals Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card title="OTA Synchronization" className="lg:col-span-1">
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <p className="text-slate-600 dark:text-slate-400 mb-4">
-                            Pull the latest bookings from integrated Online Travel Agencies.
-                        </p>
-                        <button
-                            onClick={handleOtaSync}
-                            disabled={otaSyncIndex >= MOCK_OTA_RESERVATIONS.length}
-                            className="w-full px-4 py-3 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center"
-                        >
-                            <SyncIcon />
-                            <span className="ml-2">Sync with OTAs</span>
-                        </button>
-                    </div>
-                </Card>
-                <Card title="Upcoming Arrivals" className="lg:col-span-2">
-                    <div className="space-y-3 max-h-48 overflow-y-auto">
-                        {todaysArrivals.length > 0 ? todaysArrivals.map(res => (
-                            <div key={res.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
-                                <div>
-                                    <p className="font-semibold">{res.guestName}</p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">{res.roomType}</p>
-                                </div>
-                                <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{res.ota}</span>
-                            </div>
-                        )) : <p className="text-slate-500 dark:text-slate-400">No arrivals scheduled for today.</p>}
-                    </div>
-                </Card>
-            </div>
-
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card title="Room Status Overview">
@@ -147,6 +146,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                             <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} name="Revenue" />
                         </LineChart>
                     </ResponsiveContainer>
+                </Card>
+            </div>
+            
+            {/* Accounts & Arrivals Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <Card title="Guest Accounts Overview" className="lg:col-span-2">
+                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                        {guestsWithBalance.length > 0 ? guestsWithBalance.map(({ guest, room, balance, status }) => (
+                            <div key={guest.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                                <div>
+                                    <p className="font-semibold">{guest.name} <span className="text-sm text-slate-500">(Room {room.number})</span></p>
+                                    <p className={`text-sm font-bold ${status === PaymentStatus.Owing ? 'text-red-500' : 'text-yellow-600'}`}>
+                                      Balance: ${balance.toFixed(2)}
+                                    </p>
+                                </div>
+                                <PaymentStatusBadge status={status} showLabel />
+                            </div>
+                        )) : (
+                          <div className="flex items-center justify-center h-full text-center py-8">
+                            <p className="text-slate-500 dark:text-slate-400">All guest accounts are settled.</p>
+                          </div>
+                        )}
+                    </div>
+                </Card>
+                <Card title="Upcoming Arrivals" className="lg:col-span-1">
+                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                        {todaysArrivals.length > 0 ? todaysArrivals.map(res => (
+                            <div key={res.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                                <div>
+                                    <p className="font-semibold">{res.guestName}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{res.roomType}</p>
+                                </div>
+                                <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{res.ota}</span>
+                            </div>
+                        )) : <p className="text-slate-500 dark:text-slate-400">No arrivals scheduled for today.</p>}
+                    </div>
                 </Card>
             </div>
         </div>
