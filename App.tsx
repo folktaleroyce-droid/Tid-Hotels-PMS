@@ -11,8 +11,9 @@ import { Accounts } from './components/Accounts.tsx';
 import { PeopleAndCulture } from './components/PeopleAndCulture.tsx';
 import { useHotelData } from './hooks/useHotelData.ts';
 import { useTheme } from './contexts/ThemeContext.tsx';
+import { ChannelManager } from './components/ChannelManager.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -35,6 +36,8 @@ function App() {
         return <Accounts hotelData={hotelData} />;
       case 'people-and-culture':
         return <PeopleAndCulture hotelData={hotelData} />;
+      case 'channel-manager':
+        return <ChannelManager hotelData={hotelData} />;
       default:
         return <Dashboard hotelData={hotelData} />;
     }

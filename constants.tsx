@@ -1,5 +1,15 @@
 // FIX: Added file extension for types import.
-import { Room, Guest, Transaction, Order, Employee, RoomStatus } from './types.ts';
+import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation } from './types.ts';
+
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(today.getDate() + 1);
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
+const twoDaysAgo = new Date(today);
+twoDaysAgo.setDate(today.getDate() - 2);
+const threeDaysAgo = new Date(today);
+threeDaysAgo.setDate(today.getDate() - 3);
 
 export const INITIAL_ROOMS: Room[] = [
   { id: 1, number: '101', type: 'Standard', rate: 150, status: RoomStatus.Vacant },
@@ -13,17 +23,40 @@ export const INITIAL_ROOMS: Room[] = [
 ];
 
 export const INITIAL_GUESTS: Guest[] = [
-  { id: 1, name: 'Alice Johnson', email: 'alice@example.com', phone: '123-456-7890' },
-  { id: 2, name: 'Bob Smith', email: 'bob@example.com', phone: '098-765-4321' },
+  { 
+    id: 1, 
+    name: 'Alice Johnson', 
+    email: 'alice@example.com', 
+    phone: '123-456-7890', 
+    idNumber: 'A12345678', 
+    nationality: 'USA',
+    address: '123 Wonder Lane, New York, NY',
+    arrivalDate: yesterday.toISOString().split('T')[0],
+    departureDate: today.toISOString().split('T')[0],
+    adults: 2,
+    children: 0,
+    roomNumber: '102',
+    roomType: 'Standard',
+    bookingSource: 'Direct',
+    specialRequests: 'Prefers high floor.',
+  },
+  { 
+    id: 2, 
+    name: 'Bob Smith', 
+    email: 'bob@example.com', 
+    phone: '098-765-4321', 
+    idNumber: 'B87654321', 
+    nationality: 'Canada',
+    address: '456 Maple Street, Toronto, ON',
+    arrivalDate: twoDaysAgo.toISOString().split('T')[0],
+    departureDate: tomorrow.toISOString().split('T')[0],
+    adults: 1,
+    children: 1,
+    roomNumber: '202',
+    roomType: 'Deluxe',
+    bookingSource: 'Booking.com',
+  },
 ];
-
-const today = new Date();
-const yesterday = new Date(today);
-yesterday.setDate(today.getDate() - 1);
-const twoDaysAgo = new Date(today);
-twoDaysAgo.setDate(today.getDate() - 2);
-const threeDaysAgo = new Date(today);
-threeDaysAgo.setDate(today.getDate() - 3);
 
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [
@@ -50,6 +83,16 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     { id: 1, name: 'Charlie Brown', position: 'General Manager', salary: 90000, hireDate: '2022-01-15' },
     { id: 2, name: 'Diana Prince', position: 'Head of Housekeeping', salary: 65000, hireDate: '2022-03-01' },
     { id: 3, name: 'Ethan Hunt', position: 'Receptionist', salary: 45000, hireDate: '2023-05-20' },
+];
+
+export const INITIAL_RESERVATIONS: Reservation[] = [
+    { id: 1, guestName: 'Carol Danvers', guestEmail: 'carol@marvel.com', guestPhone: '555-0101', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Suite', ota: 'Booking.com' },
+    { id: 2, guestName: 'Peter Parker', guestEmail: 'peter@dailybugle.com', guestPhone: '555-0102', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Standard', ota: 'Expedia' },
+];
+
+export const MOCK_OTA_RESERVATIONS: Omit<Reservation, 'id'>[] = [
+    { guestName: 'Steve Rogers', guestEmail: 'steve@avengers.com', guestPhone: '555-0103', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Deluxe', ota: 'Agoda' },
+    { guestName: 'Tony Stark', guestEmail: 'tony@stark.com', guestPhone: '555-0104', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Suite', ota: 'Trivago' },
 ];
 
 export const ROOM_STATUS_THEME: { [key in RoomStatus]: { light: string; dark: string; text: string; badge: string; fill: string;} } = {

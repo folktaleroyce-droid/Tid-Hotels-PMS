@@ -1,3 +1,6 @@
+// FIX: Imported Dispatch and SetStateAction from React to resolve namespace errors.
+import type { Dispatch, SetStateAction } from 'react';
+
 export enum RoomStatus {
   Vacant = 'Vacant',
   Occupied = 'Occupied',
@@ -20,6 +23,28 @@ export interface Guest {
   name: string;
   email: string;
   phone: string;
+  nationality?: string;
+  idNumber?: string;
+  address?: string;
+  arrivalDate: string;
+  departureDate: string;
+  adults: number;
+  children?: number;
+  roomNumber: string;
+  roomType: string;
+  bookingSource: string; // Formerly 'ota'
+  specialRequests?: string;
+}
+
+export interface Reservation {
+    id: number;
+    guestName: string;
+    guestEmail: string;
+    guestPhone: string;
+    checkInDate: string;
+    checkOutDate: string;
+    roomType: string;
+    ota: string;
 }
 
 export interface Transaction {
@@ -47,19 +72,35 @@ export interface Employee {
   hireDate: string;
 }
 
+export interface SyncLogEntry {
+  timestamp: string;
+  message: string;
+  level: 'info' | 'warn' | 'error' | 'success';
+}
+
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
+  reservations: Reservation[];
   transactions: Transaction[];
   orders: Order[];
   employees: Employee[];
-  setRooms: React.Dispatch<React.SetStateAction<Room[]>>;
-  setGuests: React.Dispatch<React.SetStateAction<Guest[]>>;
-  setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
-  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
-  setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+  syncLog: SyncLogEntry[];
+  stopSell: { [roomType: string]: boolean };
+  // FIX: Replaced React.Dispatch and React.SetStateAction with imported types.
+  setRooms: Dispatch<SetStateAction<Room[]>>;
+  setGuests: Dispatch<SetStateAction<Guest[]>>;
+  setReservations: Dispatch<SetStateAction<Reservation[]>>;
+  setTransactions: Dispatch<SetStateAction<Transaction[]>>;
+  setOrders: Dispatch<SetStateAction<Order[]>>;
+  setEmployees: Dispatch<SetStateAction<Employee[]>>;
+  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  addReservation: (reservation: Omit<Reservation, 'id'>) => void;
+  addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => void;
+  updateRate: (roomType: string, newRate: number) => void;
+  updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => void;
 }

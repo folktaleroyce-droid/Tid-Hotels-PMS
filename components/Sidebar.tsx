@@ -1,6 +1,6 @@
 import React from 'react';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager';
 
 interface SidebarProps {
   currentView: View;
@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView })
     { view: 'restaurant', label: 'Restaurant', icon: <RestaurantIcon /> },
     { view: 'kitchen', label: 'Kitchen', icon: <KitchenIcon /> },
     { view: 'accounts', label: 'Accounts', icon: <AccountsIcon /> },
+    { view: 'channel-manager', label: 'Channel Manager', icon: <LinkIcon /> },
     { view: 'people-and-culture', label: 'People & Culture', icon: <PeopleIcon /> },
   ];
 
@@ -84,4 +85,7 @@ const AccountsIcon = () => (
 );
 const PeopleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>
+);
+const LinkIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
 );
