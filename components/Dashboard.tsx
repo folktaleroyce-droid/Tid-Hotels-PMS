@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card } from './common/Card.tsx';
 import type { HotelData, Transaction, Guest } from '../types.ts';
 import { RoomStatus, PaymentStatus } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ROOM_STATUS_THEME, MOCK_OTA_RESERVATIONS } from '../constants.tsx';
+import { ROOM_STATUS_THEME } from '../constants.tsx';
 import { PaymentStatusBadge } from './common/PaymentStatusBadge.tsx';
 
 interface DashboardProps {
@@ -36,20 +36,10 @@ const getPaymentStatus = (balance: number, rate: number): PaymentStatus => {
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
-    const { rooms, guests, orders, transactions, reservations, addReservation } = hotelData;
+    const { rooms, guests, transactions, reservations } = hotelData;
     const { theme } = useTheme();
     const isDarkMode = theme === 'dark';
-    const [otaSyncIndex, setOtaSyncIndex] = useState(0);
 
-    const handleOtaSync = () => {
-        if (otaSyncIndex < MOCK_OTA_RESERVATIONS.length) {
-            addReservation(MOCK_OTA_RESERVATIONS[otaSyncIndex]);
-            setOtaSyncIndex(prev => prev + 1);
-        } else {
-            alert("No more mock OTA reservations to sync.");
-        }
-    };
-    
     const guestsWithBalance = useMemo(() => {
         return rooms
             .filter(r => r.status === RoomStatus.Occupied && r.guestId)

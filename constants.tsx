@@ -153,11 +153,6 @@ export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [
     },
 ];
 
-export const MOCK_OTA_RESERVATIONS: Omit<Reservation, 'id'>[] = [
-    { guestName: 'Steve Rogers', guestEmail: 'steve@avengers.com', guestPhone: '555-0103', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Deluxe', ota: 'Agoda' },
-    { guestName: 'Tony Stark', guestEmail: 'tony@stark.com', guestPhone: '555-0104', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Suite', ota: 'Trivago' },
-];
-
 export const ROOM_STATUS_THEME: { [key in RoomStatus]: { light: string; dark: string; text: string; badge: string; fill: string;} } = {
   [RoomStatus.Vacant]: { light: 'bg-green-100', dark: 'dark:bg-green-900', text: 'text-green-800 dark:text-green-200', badge: 'bg-green-500', fill: '#10B981' },
   [RoomStatus.Occupied]: { light: 'bg-blue-100', dark: 'dark:bg-blue-900', text: 'text-blue-800 dark:text-blue-200', badge: 'bg-blue-500', fill: '#3B82F6' },
