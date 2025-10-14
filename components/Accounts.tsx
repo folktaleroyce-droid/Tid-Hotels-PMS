@@ -1,10 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
-import type { HotelData, Guest, Transaction } from '../types';
-import { Card } from './common/Card';
-import { Modal } from './common/Modal';
-import { Button } from './common/Button';
-import { RoomStatus } from '../types';
+// FIX: Added file extensions to fix module resolution errors.
+import type { HotelData, Guest, Transaction } from '../types.ts';
+// FIX: Added file extensions to component imports.
+import { Card } from './common/Card.tsx';
+import { Modal } from './common/Modal.tsx';
+import { Button } from './common/Button.tsx';
+import { RoomStatus } from '../types.ts';
 
 interface AccountsProps {
   hotelData: HotelData;
@@ -53,23 +54,23 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
 
     return (
       <div>
-        <h3 className="text-xl font-bold mb-4">Transaction History</h3>
+        <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Transaction History</h3>
         <div className="max-h-80 overflow-y-auto">
             <table className="w-full text-left">
-                <thead>
-                    <tr className="border-b border-gray-600">
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Description</th>
-                        <th className="p-2">Amount</th>
-                        <th className="p-2">Actions</th>
+                <thead className="sticky top-0 bg-slate-200 dark:bg-slate-700">
+                    <tr className="border-b border-slate-300 dark:border-slate-600">
+                        <th className="p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Date</th>
+                        <th className="p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Description</th>
+                        <th className="p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Amount</th>
+                        <th className="p-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {guestTransactions.map(t => (
-                        <tr key={t.id} className="border-b border-gray-700">
-                            <td className="p-2">{t.date}</td>
-                            <td className="p-2">{t.description}</td>
-                            <td className={`p-2 font-semibold ${t.amount < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <tr key={t.id} className="border-b border-slate-200 dark:border-slate-700">
+                            <td className="p-2 text-slate-800 dark:text-slate-300">{t.date}</td>
+                            <td className="p-2 text-slate-800 dark:text-slate-300">{t.description}</td>
+                            <td className={`p-2 font-semibold ${t.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 ${Math.abs(t.amount).toFixed(2)}
                             </td>
                             <td className="p-2">
@@ -80,8 +81,8 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
                 </tbody>
             </table>
         </div>
-        <div className="text-right mt-4 text-xl font-bold">
-            Outstanding Balance: <span className={balance > 0 ? 'text-red-400' : 'text-green-400'}>${balance.toFixed(2)}</span>
+        <div className="text-right mt-4 text-xl font-bold text-slate-900 dark:text-white">
+            Outstanding Balance: <span className={balance > 0 ? 'text-red-500' : 'text-green-500'}>${balance.toFixed(2)}</span>
         </div>
       </div>
     );
@@ -92,22 +93,22 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
       <Card title="Occupied Rooms & Balances">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-600">
-                <th className="p-3">Room</th>
-                <th className="p-3">Guest</th>
-                <th className="p-3">Rate</th>
-                <th className="p-3">Balance</th>
-                <th className="p-3">Actions</th>
+            <thead className="bg-slate-200 dark:bg-slate-700">
+              <tr className="border-b border-slate-200 dark:border-slate-600">
+                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Room</th>
+                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Guest</th>
+                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Rate</th>
+                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Balance</th>
+                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {occupiedRoomsWithDetails.map(({ room, guest, balance }) => (
-                <tr key={room.id} className="border-b border-gray-700 hover:bg-gray-800">
-                  <td className="p-3">{room.number}</td>
-                  <td className="p-3">{guest?.name || 'N/A'}</td>
-                  <td className="p-3">${room.rate.toFixed(2)}</td>
-                  <td className={`p-3 font-semibold ${balance > 0 ? 'text-red-400' : 'text-green-400'}`}>
+              {occupiedRoomsWithDetails.map(({ room, guest, balance }, index) => (
+                <tr key={room.id} className={`border-b border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'} `}>
+                  <td className="p-3 text-slate-800 dark:text-slate-300">{room.number}</td>
+                  <td className="p-3 text-slate-800 dark:text-slate-300">{guest?.name || 'N/A'}</td>
+                  <td className="p-3 text-slate-800 dark:text-slate-300">${room.rate.toFixed(2)}</td>
+                  <td className={`p-3 font-semibold ${balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     ${balance.toFixed(2)}
                   </td>
                   <td className="p-3">

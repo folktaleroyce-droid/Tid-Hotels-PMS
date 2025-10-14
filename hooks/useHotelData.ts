@@ -1,14 +1,15 @@
 import { useState } from 'react';
-// FIX: Import RoomStatus as a value, not just a type, as it is used for enum member access.
-import { RoomStatus } from '../types';
-import type { Room, Guest, Transaction, Order, HotelData } from '../types';
-import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_ORDERS } from '../constants';
+// FIX: Added file extensions to fix module resolution errors.
+import { RoomStatus } from '../types.ts';
+import type { Room, Guest, Transaction, Order, Employee, HotelData } from '../types.ts';
+import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES } from '../constants.tsx';
 
 export const useHotelData = (): HotelData => {
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
   const [guests, setGuests] = useState<Guest[]>(INITIAL_GUESTS);
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
 
   const addOrder = (order: Omit<Order, 'id' | 'createdAt'>) => {
     const newOrder: Order = {
@@ -35,17 +36,28 @@ export const useHotelData = (): HotelData => {
     setTransactions(prev => [...prev, newTransaction]);
   };
 
+  const addEmployee = (employee: Omit<Employee, 'id'>) => {
+    const newEmployee: Employee = {
+      ...employee,
+      id: employees.length + 1,
+    };
+    setEmployees(prev => [...prev, newEmployee]);
+  };
+
   return {
     rooms,
     guests,
     transactions,
     orders,
+    employees,
     setRooms,
     setGuests,
     setTransactions,
     setOrders,
+    setEmployees,
     addOrder,
     updateRoomStatus,
-    addTransaction
+    addTransaction,
+    addEmployee
   };
 };

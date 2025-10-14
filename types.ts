@@ -1,11 +1,9 @@
-import type { Dispatch, SetStateAction } from 'react';
-
 export enum RoomStatus {
-  Vacant = 'Vacant & Clean',
+  Vacant = 'Vacant',
   Occupied = 'Occupied',
-  Reserved = 'Reserved',
-  OutOfOrder = 'Out of Order',
   Dirty = 'Dirty',
+  Cleaning = 'Cleaning',
+  OutOfOrder = 'Out of Order',
 }
 
 export interface Room {
@@ -20,47 +18,48 @@ export interface Room {
 export interface Guest {
   id: number;
   name: string;
-  checkIn: string;
-  checkOut: string;
-  organization?: string;
+  email: string;
+  phone: string;
 }
 
 export interface Transaction {
   id: number;
   guestId: number;
   description: string;
-  amount: number;
+  amount: number; // positive for charges, negative for payments
   date: string;
-}
-
-export enum OrderStatus {
-  Pending = 'Pending',
-  InProgress = 'In Progress',
-  Completed = 'Completed',
 }
 
 export interface Order {
   id: number;
   roomId: number;
-  roomNumber: string;
-  items: { name: string; quantity: number }[];
-  status: OrderStatus;
+  items: { name: string; price: number; quantity: number }[];
+  total: number;
+  status: 'Pending' | 'Preparing' | 'Ready' | 'Delivered';
   createdAt: string;
 }
 
-export type View = 'Dashboard' | 'Reception' | 'Housekeeping' | 'Restaurant' | 'Kitchen' | 'Accounts';
+export interface Employee {
+  id: number;
+  name: string;
+  position: string;
+  salary: number;
+  hireDate: string;
+}
 
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
   transactions: Transaction[];
   orders: Order[];
-  // FIX: Use Dispatch and SetStateAction types from React.
-  setRooms: Dispatch<SetStateAction<Room[]>>;
-  setGuests: Dispatch<SetStateAction<Guest[]>>;
-  setTransactions: Dispatch<SetStateAction<Transaction[]>>;
-  setOrders: Dispatch<SetStateAction<Order[]>>;
+  employees: Employee[];
+  setRooms: React.Dispatch<React.SetStateAction<Room[]>>;
+  setGuests: React.Dispatch<React.SetStateAction<Guest[]>>;
+  setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
+  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addEmployee: (employee: Omit<Employee, 'id'>) => void;
 }

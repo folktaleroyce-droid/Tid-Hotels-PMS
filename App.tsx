@@ -1,50 +1,56 @@
-
 import React, { useState } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import { Dashboard } from './components/Dashboard';
-import { Reception } from './components/Reception';
-import { Housekeeping } from './components/Housekeeping';
-import { Restaurant } from './components/Restaurant';
-import { Kitchen } from './components/Kitchen';
-import { Accounts } from './components/Accounts';
-import { useHotelData } from './hooks/useHotelData';
-import type { View } from './types';
+// FIX: Added file extensions to imports to resolve module errors.
+import { Sidebar } from './components/Sidebar.tsx';
+import { Header } from './components/Header.tsx';
+import { Dashboard } from './components/Dashboard.tsx';
+import { Reception } from './components/Reception.tsx';
+import { Housekeeping } from './components/Housekeeping.tsx';
+import { Restaurant } from './components/Restaurant.tsx';
+import { Kitchen } from './components/Kitchen.tsx';
+import { Accounts } from './components/Accounts.tsx';
+import { PeopleAndCulture } from './components/PeopleAndCulture.tsx';
+import { useHotelData } from './hooks/useHotelData.ts';
+import { useTheme } from './contexts/ThemeContext.tsx';
 
-const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>('Dashboard');
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture';
+
+function App() {
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const hotelData = useHotelData();
+  const { theme } = useTheme();
 
   const renderView = () => {
     switch (currentView) {
-      case 'Dashboard':
+      case 'dashboard':
         return <Dashboard hotelData={hotelData} />;
-      case 'Reception':
+      case 'reception':
         return <Reception hotelData={hotelData} />;
-      case 'Housekeeping':
+      case 'housekeeping':
         return <Housekeeping hotelData={hotelData} />;
-      case 'Restaurant':
+      case 'restaurant':
         return <Restaurant hotelData={hotelData} />;
-      case 'Kitchen':
+      case 'kitchen':
         return <Kitchen hotelData={hotelData} />;
-      case 'Accounts':
+      case 'accounts':
         return <Accounts hotelData={hotelData} />;
+      case 'people-and-culture':
+        return <PeopleAndCulture hotelData={hotelData} />;
       default:
         return <Dashboard hotelData={hotelData} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-200">
+    <div className={`flex h-screen bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-200 ${theme}`}>
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header currentView={currentView} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900 p-8">
+        <Header />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-slate-900 p-6">
           {renderView()}
         </main>
       </div>
     </div>
   );
-};
+}
 
 export default App;

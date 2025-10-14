@@ -1,120 +1,111 @@
-
 import React, { useState } from 'react';
-import type { HotelData } from '../types';
-import { RoomStatus, OrderStatus } from '../types';
-import { Card } from './common/Card';
-import { Button } from './common/Button';
+// FIX: Added file extensions to imports to resolve module errors.
+import { Card } from './common/Card.tsx';
+import { Button } from './common/Button.tsx';
+import { Modal } from './common/Modal.tsx';
+import type { HotelData, Room } from '../types.ts';
+import { RoomStatus } from '../types.ts';
+import { MENU_ITEMS } from '../constants.tsx';
 
 interface RestaurantProps {
-  hotelData: HotelData;
+    hotelData: HotelData;
 }
 
-interface OrderItem {
-    name: string;
-    quantity: number;
-}
+type OrderItem = { name: string; price: number; quantity: number };
 
 export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
-  const { rooms, addOrder, addTransaction } = hotelData;
-  const [roomNumber, setRoomNumber] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([{ name: '', quantity: 1 }]);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const handleItemChange = (index: number, field: keyof OrderItem, value: string | number) => {
-    const newItems = [...items];
-    if (field === 'name') {
-        newItems[index][field] = value as string;
-    } else {
-        newItems[index][field] = Number(value);
-    }
-    setItems(newItems);
-  };
-
-  const addItem = () => {
-    setItems([...items, { name: '', quantity: 1 }]);
-  };
-
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+    const { rooms, addOrder, addTransaction } = hotelData;
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+    const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
     
-    const targetRoom = rooms.find(r => r.number === roomNumber && r.status === RoomStatus.Occupied);
-    if (!targetRoom || !targetRoom.guestId) {
-      setError('Invalid or unoccupied room number.');
-      return;
-    }
+    const occupiedRooms = rooms.filter(r => r.status === RoomStatus.Occupied);
 
-    const validItems = items.filter(item => item.name.trim() !== '' && item.quantity > 0);
-    if (validItems.length === 0) {
-      setError('Please add at least one valid item.');
-      return;
-    }
-    
-    // This is a mock price calculation
-    const totalAmount = validItems.reduce((sum, item) => sum + (item.quantity * 15), 0);
-    
-    addOrder({
-      roomId: targetRoom.id,
-      roomNumber: targetRoom.number,
-      items: validItems,
-      status: OrderStatus.Pending,
-    });
+    const handleOpenModal = (room: Room) => {
+        setSelectedRoom(room);
+        setIsModalOpen(true);
+    };
 
-    addTransaction({
-        guestId: targetRoom.guestId,
-        description: `Room Service (Room ${targetRoom.number})`,
-        amount: totalAmount,
-        date: new Date().toISOString()
-    });
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedRoom(null);
+        setCurrentOrder([]);
+    };
     
-    setSuccess(`Order for Room ${roomNumber} placed successfully! Total: $${totalAmount.toFixed(2)}`);
-    setRoomNumber('');
-    setItems([{ name: '', quantity: 1 }]);
-    setTimeout(() => setSuccess(''), 5000);
-  };
-
-  return (
-    <Card title="New Restaurant / Room Service Order">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="roomNumber" className="block text-sm font-medium text-gray-300 mb-1">Room Number</label>
-          <select 
-            id="roomNumber" 
-            value={roomNumber} 
-            onChange={e => setRoomNumber(e.target.value)}
-            className="w-full bg-gray-700 text-white p-2 rounded"
-          >
-            <option value="">Select an occupied room</option>
-            {rooms
-              .filter(r => r.status === RoomStatus.Occupied)
-              .map(r => <option key={r.id} value={r.number}>{r.number}</option>)
+    const handleAddToOrder = (menuItem: { name: string; price: number }) => {
+        setCurrentOrder(prevOrder => {
+            const existingItem = prevOrder.find(item => item.name === menuItem.name);
+            if (existingItem) {
+                return prevOrder.map(item => item.name === menuItem.name ? { ...item, quantity: item.quantity + 1 } : item);
             }
-          </select>
-        </div>
-        
-        <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">Items</label>
-            {items.map((item, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                    <input type="text" placeholder="Item Name" value={item.name} onChange={e => handleItemChange(index, 'name', e.target.value)} className="flex-grow bg-gray-700 text-white p-2 rounded" />
-                    <input type="number" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} className="w-20 bg-gray-700 text-white p-2 rounded" />
-                    <Button type="button" variant="secondary" onClick={() => removeItem(index)}>&times;</Button>
+            return [...prevOrder, { ...menuItem, quantity: 1 }];
+        });
+    };
+    
+    const handlePlaceOrder = () => {
+        if (!selectedRoom || currentOrder.length === 0) return;
+        const total = currentOrder.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        addOrder({
+            roomId: selectedRoom.id,
+            items: currentOrder,
+            total,
+            status: 'Pending'
+        });
+        if (selectedRoom.guestId) {
+            addTransaction({
+                guestId: selectedRoom.guestId,
+                description: 'Room Service',
+                amount: total,
+                date: new Date().toISOString().split('T')[0]
+            });
+        }
+        handleCloseModal();
+    };
+    
+    const orderTotal = currentOrder.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+    return (
+        <div>
+            <Card title="Room Service Orders">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {occupiedRooms.map(room => (
+                        <div key={room.id} className="p-4 rounded-lg shadow-md border-2 border-slate-200 dark:border-slate-700 text-center">
+                            <h4 className="font-bold text-lg">Room {room.number}</h4>
+                            <Button className="mt-4 w-full" onClick={() => handleOpenModal(room)}>New Order</Button>
+                        </div>
+                    ))}
                 </div>
-            ))}
-            <Button type="button" variant="secondary" onClick={addItem}>+ Add Item</Button>
+            </Card>
+            
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={`New Order for Room ${selectedRoom?.number}`}>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 className="font-bold mb-2">Menu</h4>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                            {MENU_ITEMS.map(item => (
+                                <div key={item.name} className="flex justify-between items-center p-2 rounded bg-slate-200 dark:bg-slate-700">
+                                    <span>{item.name} (${item.price})</span>
+                                    <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => handleAddToOrder(item)}>+</Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-bold mb-2">Current Order</h4>
+                        <div className="space-y-1 max-h-80 overflow-y-auto">
+                            {currentOrder.map(item => (
+                                <p key={item.name}>{item.quantity}x {item.name} - ${(item.price * item.quantity).toFixed(2)}</p>
+                            ))}
+                        </div>
+                        <hr className="my-2 border-slate-300 dark:border-slate-600"/>
+                        <p className="font-bold text-lg">Total: ${orderTotal.toFixed(2)}</p>
+                        <div className="flex justify-end space-x-2 pt-4">
+                            <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
+                            <Button onClick={handlePlaceOrder} disabled={currentOrder.length === 0}>Place Order</Button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
-        
-        {error && <p className="text-red-400">{error}</p>}
-        {success && <p className="text-green-400">{success}</p>}
-        
-        <Button type="submit">Charge to Room</Button>
-      </form>
-    </Card>
-  );
+    );
 };
