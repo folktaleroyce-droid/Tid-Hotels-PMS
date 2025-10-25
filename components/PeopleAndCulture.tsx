@@ -31,10 +31,27 @@ export const PeopleAndCulture: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentEmployee, setCurrentEmployee] = useState<Omit<Employee, 'id'> | Employee>(initialEmployeeState);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [departmentFilter, setDepartmentFilter] = useState('');
+    const [jobTitleFilter, setJobTitleFilter] = useState('');
     
     // Analytics
     const averageSalary = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(employees.reduce((acc, emp) => acc + emp.salary, 0) / (employees.length || 1));
     const departmentsCount = [...new Set(employees.map(e => e.department))].length;
+    
+    const jobTitles = useMemo(() => {
+        return [...new Set(employees.map(e => e.jobTitle))].sort();
+    }, [employees]);
+    
+    const filteredEmployees = useMemo(() => {
+        return employees.filter(employee => {
+            const nameMatch = employee.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const departmentMatch = departmentFilter ? employee.department === departmentFilter : true;
+            const jobTitleMatch = jobTitleFilter ? employee.jobTitle === jobTitleFilter : true;
+            return nameMatch && departmentMatch && jobTitleMatch;
+        });
+    }, [employees, searchTerm, departmentFilter, jobTitleFilter]);
+
 
     const openAddModal = () => {
         setCurrentEmployee(initialEmployeeState);
@@ -112,6 +129,34 @@ export const PeopleAndCulture: React.FC = () => {
             </div>
 
             {/* Employee Management Section */}
+            <div className="mb-6 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                        type="text"
+                        placeholder="Search by name..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                    />
+                    <select
+                        value={departmentFilter}
+                        onChange={e => setDepartmentFilter(e.target.value)}
+                        className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                    >
+                        <option value="">All Departments</option>
+                        {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                    </select>
+                    <select
+                        value={jobTitleFilter}
+                        onChange={e => setJobTitleFilter(e.target.value)}
+                        className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                    >
+                        <option value="">All Job Titles</option>
+                        {jobTitles.map(title => <option key={title} value={title}>{title}</option>)}
+                    </select>
+                 </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-200 dark:bg-slate-700">
@@ -124,7 +169,7 @@ export const PeopleAndCulture: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map((employee, index) => (
+                  {filteredEmployees.map((employee, index) => (
                     <tr key={employee.id} className={`border-b border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'} `}>
                       <td className="p-3">
                         <div className="flex items-center space-x-3">
@@ -154,6 +199,11 @@ export const PeopleAndCulture: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              {filteredEmployees.length === 0 && (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No employees found matching your criteria.
+                </div>
+              )}
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={modalMode === 'add' ? 'Add New Employee' : `Edit ${currentEmployee.name}`}>
