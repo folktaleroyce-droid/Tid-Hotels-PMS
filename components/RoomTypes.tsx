@@ -4,12 +4,10 @@ import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
 import { useHotelData } from '../hooks/useHotelData.ts';
 import type { RoomType } from '../types.ts';
-import { CURRENCIES } from '../constants.tsx';
 
 const INITIAL_FORM_STATE: Omit<RoomType, 'id'> = {
     name: '',
-    baseRate: 0,
-    currency: 'NGN',
+    rates: { NGN: 0, USD: 0 },
     capacity: 2,
 };
 
@@ -18,18 +16,18 @@ export const RoomTypes: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentRoomType, setCurrentRoomType] = useState<RoomType | Omit<RoomType, 'id'>>(INITIAL_FORM_STATE);
-    const [errors, setErrors] = useState({ name: '', baseRate: '', capacity: '' });
+    const [errors, setErrors] = useState({ name: '', rates: '', capacity: '' });
 
     const openAddModal = () => {
         setCurrentRoomType(INITIAL_FORM_STATE);
-        setErrors({ name: '', baseRate: '', capacity: '' });
+        setErrors({ name: '', rates: '', capacity: '' });
         setModalMode('add');
         setIsModalOpen(true);
     };
     
     const openEditModal = (roomType: RoomType) => {
         setCurrentRoomType(roomType);
-        setErrors({ name: '', baseRate: '', capacity: '' });
+        setErrors({ name: '', rates: '', capacity: '' });
         setModalMode('edit');
         setIsModalOpen(true);
     };
@@ -40,25 +38,36 @@ export const RoomTypes: React.FC = () => {
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setCurrentRoomType(prev => ({
-            ...prev,
-            [name]: (name === 'baseRate' || name === 'capacity') ? parseInt(value, 10) || 0 : value,
-        }));
+        if (name === 'rateNGN' || name === 'rateUSD') {
+            const currency = name === 'rateNGN' ? 'NGN' : 'USD';
+            setCurrentRoomType(prev => ({
+                ...prev,
+                rates: {
+                    ...prev.rates,
+                    [currency]: parseInt(value, 10) || 0,
+                }
+            }));
+        } else {
+             setCurrentRoomType(prev => ({
+                ...prev,
+                [name]: name === 'capacity' ? parseInt(value, 10) || 0 : value,
+            }));
+        }
     };
     
     const validateForm = () => {
-        const newErrors = { name: '', baseRate: '', capacity: '' };
+        const newErrors = { name: '', rates: '', capacity: '' };
         if (!currentRoomType.name.trim()) {
             newErrors.name = 'Room type name is required.';
         }
-        if (!currentRoomType.baseRate || currentRoomType.baseRate <= 0) {
-            newErrors.baseRate = 'Base rate must be a positive number.';
+        if (!currentRoomType.rates.NGN || currentRoomType.rates.NGN <= 0 || !currentRoomType.rates.USD || currentRoomType.rates.USD <= 0) {
+            newErrors.rates = 'Both NGN and USD rates must be positive numbers.';
         }
         if (!currentRoomType.capacity || currentRoomType.capacity <= 0) {
             newErrors.capacity = 'Capacity must be a positive number.';
         }
         setErrors(newErrors);
-        return !newErrors.name && !newErrors.baseRate && !newErrors.capacity;
+        return !newErrors.name && !newErrors.rates && !newErrors.capacity;
     };
 
     const handleSubmit = () => {
@@ -93,7 +102,7 @@ export const RoomTypes: React.FC = () => {
                     <thead className="bg-slate-200 dark:bg-slate-700">
                         <tr>
                             <th className="p-3 text-xs font-bold uppercase">Name</th>
-                            <th className="p-3 text-xs font-bold uppercase">Base Rate</th>
+                            <th className="p-3 text-xs font-bold uppercase">Base Rates (NGN / USD)</th>
                             <th className="p-3 text-xs font-bold uppercase">Capacity</th>
                             <th className="p-3 text-xs font-bold uppercase text-center">Actions</th>
                         </tr>
@@ -102,7 +111,7 @@ export const RoomTypes: React.FC = () => {
                         {roomTypes.map((rt, index) => (
                             <tr key={rt.id} className={`border-b border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
                                 <td className="p-3 font-medium">{rt.name}</td>
-                                <td className="p-3">{rt.currency === 'NGN' ? '₦' : '$'}{rt.baseRate.toLocaleString()}</td>
+                                <td className="p-3">₦{rt.rates.NGN.toLocaleString()} / ${rt.rates.USD.toLocaleString()}</td>
                                 <td className="p-3">{rt.capacity} Guest(s)</td>
                                 <td className="p-3 text-center">
                                     <div className="flex justify-center space-x-2">
@@ -140,28 +149,27 @@ export const RoomTypes: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Base Rate</label>
+                            <label className="block text-sm font-medium mb-1">Base Rate (NGN)</label>
                             <input
                                 type="number"
-                                name="baseRate"
-                                value={currentRoomType.baseRate}
+                                name="rateNGN"
+                                value={currentRoomType.rates.NGN}
                                 onChange={handleFormChange}
                                 className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
                             />
-                            {errors.baseRate && <p className="text-red-500 text-xs mt-1">{errors.baseRate}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Currency</label>
-                            <select
-                                name="currency"
-                                value={currentRoomType.currency}
+                            <label className="block text-sm font-medium mb-1">Base Rate (USD)</label>
+                            <input
+                                type="number"
+                                name="rateUSD"
+                                value={currentRoomType.rates.USD}
                                 onChange={handleFormChange}
                                 className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
-                            >
-                                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
+                            />
                         </div>
                     </div>
+                    {errors.rates && <p className="text-red-500 text-xs mt-1 col-span-2">{errors.rates}</p>}
                      <div>
                         <label className="block text-sm font-medium mb-1">Capacity (Max Guests)</label>
                         <input

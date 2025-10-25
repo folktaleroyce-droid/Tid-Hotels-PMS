@@ -1,22 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // FIX: Added file extensions to imports to resolve module errors.
 import { Card } from './common/Card.tsx';
 import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
-import type { HotelData, Room, Guest, Reservation } from '../types.ts';
+import type { HotelData, Room, Guest, Reservation, Transaction, RoomType } from '../types.ts';
 import { RoomStatus, LoyaltyTier } from '../types.ts';
 import { ROOM_STATUS_THEME, ID_TYPES, LOYALTY_TIER_THEME } from '../constants.tsx';
-
-interface ReceptionProps {
-    hotelData: HotelData;
-}
 
 // Moved INITIAL_FORM_STATE inside the component to use fresh dates.
 const BASE_INITIAL_FORM_STATE = {
     guestName: '',
     guestEmail: '',
     guestPhone: '',
-    birthdate: '',
     nationality: '',
     idType: '',
     idNumber: '',
@@ -27,20 +22,27 @@ const BASE_INITIAL_FORM_STATE = {
     specialRequests: '',
     roomId: 0,
     roomRate: 0,
+    discount: '',
+    currency: 'NGN' as 'NGN' | 'USD',
 };
 
 // FIX: Moved createInitialFormState before its use in FormState to prevent a ReferenceError.
-const createInitialFormState = (tomorrowStr: string) => ({
+const createInitialFormState = (todayStr: string, tomorrowStr: string) => ({
     ...BASE_INITIAL_FORM_STATE,
+    arrivalDate: todayStr,
     departureDate: tomorrowStr,
 });
 
-type FormState = ReturnType<typeof createInitialFormState>;
+type FormState = ReturnType<typeof createInitialFormState> & { discount: string };
 type FormErrors = Partial<{[K in keyof FormState]: string}>;
 
+// FIX: Added ReceptionProps interface to resolve 'Cannot find name' error.
+interface ReceptionProps {
+    hotelData: HotelData;
+}
 
 export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
-    const { rooms, guests, reservations, updateRoomStatus, addTransaction, setGuests, setReservations, addSyncLogEntry, taxSettings } = hotelData;
+    const { rooms, guests, reservations, updateRoomStatus, addTransaction, setGuests, setReservations, addSyncLogEntry, taxSettings, roomTypes } = hotelData;
     const [isCheckInModalOpen, setCheckInModalOpen] = useState(false);
     const [isCheckOutModalOpen, setCheckOutModalOpen] = useState(false);
     
@@ -50,7 +52,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     tomorrow.setDate(new Date().getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
     
-    const INITIAL_FORM_STATE = createInitialFormState(tomorrowStr);
+    const INITIAL_FORM_STATE = createInitialFormState(today, tomorrowStr);
 
     const [selectedRoomForAction, setSelectedRoomForAction] = useState<Room | null>(null);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
@@ -58,9 +60,45 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     const [checkInForm, setCheckInForm] = useState<FormState>(INITIAL_FORM_STATE);
     const [errors, setErrors] = useState<FormErrors>({});
 
+    const [guestForCheckOut, setGuestForCheckOut] = useState<Guest | null>(null);
+    const [checkOutBalance, setCheckOutBalance] = useState(0);
+
+    // Effect to update room rate when currency or selected room changes
+    useEffect(() => {
+        if (!isCheckInModalOpen) return;
+
+        let roomTypeDetails: RoomType | undefined;
+
+        if (selectedRoomForAction) {
+            roomTypeDetails = roomTypes.find(rt => rt.name === selectedRoomForAction.type);
+        } else if (selectedReservation) {
+            roomTypeDetails = roomTypes.find(rt => rt.name === selectedReservation.roomType);
+        }
+        
+        if (roomTypeDetails) {
+            const newRate = roomTypeDetails.rates[checkInForm.currency];
+            setCheckInForm(prev => ({...prev, roomRate: newRate}));
+        }
+
+    }, [checkInForm.currency, selectedRoomForAction, selectedReservation, roomTypes, isCheckInModalOpen]);
+
+
+    const calculateBalance = (guestId: number, transactions: Transaction[]): number => {
+      return transactions
+        .filter(t => t.guestId === guestId)
+        .reduce((acc, t) => acc + t.amount, 0);
+    };
+
     const handleOpenCheckIn = (room: Room) => {
+        const roomTypeDetails = roomTypes.find(rt => rt.name === room.type);
         setSelectedReservation(null);
-        setCheckInForm({ ...INITIAL_FORM_STATE, roomId: room.id, roomRate: room.rate });
+        setSelectedRoomForAction(room); // Keep track of the room itself
+        setCheckInForm({
+            ...INITIAL_FORM_STATE,
+            roomId: room.id,
+            roomRate: roomTypeDetails?.rates['NGN'] || 0,
+            currency: 'NGN',
+        });
         setErrors({});
         setCheckInModalOpen(true);
     };
@@ -71,22 +109,34 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             alert(`No vacant ${reservation.roomType} rooms available for check-in.`);
             return;
         }
+        const roomTypeDetails = roomTypes.find(rt => rt.name === reservation.roomType);
         setSelectedReservation(reservation);
+        setSelectedRoomForAction(availableRoom);
         setCheckInForm({
             ...INITIAL_FORM_STATE,
             guestName: reservation.guestName,
             guestEmail: reservation.guestEmail,
             guestPhone: reservation.guestPhone,
+            arrivalDate: reservation.checkInDate,
             departureDate: reservation.checkOutDate,
             roomId: availableRoom.id,
-            roomRate: availableRoom.rate,
+            roomRate: roomTypeDetails?.rates['NGN'] || 0,
+            currency: 'NGN',
         });
         setErrors({});
         setCheckInModalOpen(true);
     };
 
     const handleOpenCheckOut = (room: Room) => {
+        if (!room.guestId) return; // Should not happen, but a good guard
+        const guest = hotelData.guests.find(g => g.id === room.guestId);
+        if (!guest) return;
+    
+        const balance = calculateBalance(guest.id, hotelData.transactions);
+        
         setSelectedRoomForAction(room);
+        setGuestForCheckOut(guest);
+        setCheckOutBalance(balance);
         setCheckOutModalOpen(true);
     };
     
@@ -97,6 +147,8 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         setSelectedReservation(null);
         setCheckInForm(INITIAL_FORM_STATE);
         setErrors({});
+        setGuestForCheckOut(null);
+        setCheckOutBalance(0);
     };
 
     const validateForm = (): boolean => {
@@ -118,12 +170,20 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             newErrors.guestPhone = "Please enter a valid phone number format.";
         }
         
-        if (!checkInForm.birthdate) newErrors.birthdate = "Birthdate is required.";
+        if (!checkInForm.arrivalDate) newErrors.arrivalDate = "Arrival date is required.";
         if (!checkInForm.idType) newErrors.idType = "ID Type is required.";
         if (checkInForm.idType === 'Other' && !checkInForm.idOtherType.trim()) newErrors.idOtherType = "Please specify ID type.";
         if (!checkInForm.idNumber.trim()) newErrors.idNumber = "ID number is required.";
         if (!checkInForm.roomRate || checkInForm.roomRate <= 0) newErrors.roomRate = "A valid room rate is required.";
         
+        const discount = parseFloat(checkInForm.discount);
+        if (checkInForm.discount && (isNaN(discount) || discount < 0)) {
+            newErrors.discount = "Discount must be a positive number.";
+        }
+        if (discount > checkInForm.roomRate) {
+             newErrors.discount = "Discount cannot be greater than the room rate.";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -140,25 +200,28 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             alert('This room is not vacant and cannot be assigned.');
             return;
         }
+        
+        const discountAmount = parseFloat(checkInForm.discount) || 0;
 
         const newGuest: Guest = {
             id: guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1,
             name: checkInForm.guestName,
             email: checkInForm.guestEmail,
             phone: checkInForm.guestPhone,
-            birthdate: checkInForm.birthdate,
             nationality: checkInForm.nationality,
             idType: checkInForm.idType,
             idOtherType: checkInForm.idOtherType,
             idNumber: checkInForm.idNumber,
             address: checkInForm.address,
-            arrivalDate: today,
+            arrivalDate: checkInForm.arrivalDate,
             departureDate: checkInForm.departureDate,
             adults: checkInForm.adults,
             children: checkInForm.children,
             roomNumber: roomToCheckIn.number,
             roomType: roomToCheckIn.type,
             bookingSource: selectedReservation ? selectedReservation.ota : 'Direct',
+            currency: checkInForm.currency,
+            discount: discountAmount,
             specialRequests: checkInForm.specialRequests,
             loyaltyPoints: 0,
             loyaltyTier: LoyaltyTier.Bronze,
@@ -168,21 +231,27 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         updateRoomStatus(roomToCheckIn.id, RoomStatus.Occupied, newGuest.id);
         
         // Post room charge
+        const finalCharge = checkInForm.roomRate - discountAmount;
+        let chargeDescription = 'Room Charge';
+        if (discountAmount > 0) {
+            const currencySymbol = checkInForm.currency === 'NGN' ? '₦' : '$';
+            chargeDescription += ` (with ${currencySymbol}${discountAmount.toLocaleString()} discount)`;
+        }
         addTransaction({
             guestId: newGuest.id,
-            description: 'Room Charge',
-            amount: checkInForm.roomRate,
-            date: today
+            description: chargeDescription,
+            amount: finalCharge,
+            date: checkInForm.arrivalDate
         });
 
         // Post tax if enabled
         if (taxSettings.isEnabled && taxSettings.rate > 0) {
-            const taxAmount = checkInForm.roomRate * (taxSettings.rate / 100);
+            const taxAmount = finalCharge * (taxSettings.rate / 100);
             addTransaction({
                 guestId: newGuest.id,
                 description: `Tax (${taxSettings.rate}%)`,
                 amount: taxAmount,
-                date: today
+                date: checkInForm.arrivalDate
             });
         }
         
@@ -196,10 +265,21 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     
     const handleCheckOut = () => {
         if (selectedRoomForAction) {
+            if (checkOutBalance > 0.01) { // Using a small epsilon for float comparison
+                const proceed = window.confirm(
+                    `This guest has an outstanding balance of ₦${checkOutBalance.toLocaleString()}. Do you want to proceed with check-out anyway?`
+                );
+                if (!proceed) {
+                    return; // User clicked 'Cancel', so we stop here.
+                }
+            }
+            // Proceed with checkout
             updateRoomStatus(selectedRoomForAction.id, RoomStatus.Dirty);
         }
-        handleCloseModals();
+        handleCloseModals(); // Close modal and clean up state
     };
+    
+    const finalNightlyCharge = (checkInForm.roomRate || 0) - (parseFloat(checkInForm.discount) || 0);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -265,9 +345,9 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                              {errors.guestPhone && <p className="text-red-500 text-xs mt-1">{errors.guestPhone}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Birthdate*</label>
-                            <input type="date" value={checkInForm.birthdate} onChange={(e) => setCheckInForm({...checkInForm, birthdate: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
-                            {errors.birthdate && <p className="text-red-500 text-xs mt-1">{errors.birthdate}</p>}
+                            <label className="block text-sm font-medium mb-1">Arrival Date*</label>
+                            <input type="date" value={checkInForm.arrivalDate} onChange={(e) => setCheckInForm({...checkInForm, arrivalDate: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
+                            {errors.arrivalDate && <p className="text-red-500 text-xs mt-1">{errors.arrivalDate}</p>}
                         </div>
                          <div>
                             <label className="block text-sm font-medium mb-1">ID Type*</label>
@@ -297,13 +377,39 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                             <label className="block text-sm font-medium mb-1">Departure Date</label>
                             <input type="date" value={checkInForm.departureDate} onChange={(e) => setCheckInForm({...checkInForm, departureDate: e.target.value})} min={tomorrowStr} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Room Rate* (per night)</label>
-                             <input type="number" value={checkInForm.roomRate} onChange={(e) => setCheckInForm({...checkInForm, roomRate: parseInt(e.target.value, 10)})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
-                            {errors.roomRate && <p className="text-red-500 text-xs mt-1">{errors.roomRate}</p>}
+                        <div className="grid grid-cols-2 gap-x-4">
+                             <div>
+                                <label className="block text-sm font-medium mb-1">Currency</label>
+                                <select 
+                                  value={checkInForm.currency} 
+                                  onChange={(e) => setCheckInForm({...checkInForm, currency: e.target.value as 'NGN' | 'USD'})} 
+                                  className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                                >
+                                    <option value="NGN">NGN</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Room Rate (per night)</label>
+                                 <input type="number" readOnly value={checkInForm.roomRate} className="w-full p-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600"/>
+                                {errors.roomRate && <p className="text-red-500 text-xs mt-1">{errors.roomRate}</p>}
+                            </div>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium mb-1">Discount</label>
+                             <input 
+                                type="number" 
+                                value={checkInForm.discount} 
+                                onChange={(e) => setCheckInForm({...checkInForm, discount: e.target.value})} 
+                                placeholder="e.g., 5000"
+                                className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                             />
+                            {errors.discount && <p className="text-red-500 text-xs mt-1">{errors.discount}</p>}
                         </div>
                     </div>
-                    <p className="font-bold text-center p-2 rounded-md bg-slate-200 dark:bg-slate-700">Room Rate: ₦{checkInForm.roomRate.toLocaleString()}</p>
+                    <div className="font-bold text-center p-3 rounded-md bg-slate-200 dark:bg-slate-700 text-lg">
+                        Final Nightly Charge: {checkInForm.currency === 'NGN' ? '₦' : '$'}{finalNightlyCharge.toLocaleString()}
+                    </div>
                     <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
                         <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
                         <Button onClick={handleCheckIn}>Complete Check-in</Button>
@@ -311,11 +417,30 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                 </div>
             </Modal>
             
-            <Modal isOpen={isCheckOutModalOpen} onClose={handleCloseModals} title={`Confirm Check-out for Room ${selectedRoomForAction?.number}`}>
-                <p>Are you sure you want to check out the guest from Room {selectedRoomForAction?.number}? The room status will be set to 'Dirty'.</p>
+            <Modal 
+                isOpen={isCheckOutModalOpen} 
+                onClose={handleCloseModals} 
+                title={`Confirm Check-out for ${guestForCheckOut?.name || 'Guest'} (Room ${selectedRoomForAction?.number})`}
+            >
+                <div className="space-y-4">
+                    <p>Please confirm the guest's final account balance before proceeding.</p>
+                    <div className="p-4 rounded-lg bg-slate-200 dark:bg-slate-700 text-center">
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Final Balance</p>
+                        <p className={`text-3xl font-bold ${checkOutBalance > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                            ₦{checkOutBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        {checkOutBalance <= 0.01 && <p className="text-green-600 font-semibold mt-1">Account Settled</p>}
+                        {checkOutBalance > 0.01 && <p className="text-red-600 font-semibold mt-1">Outstanding Amount</p>}
+                    </div>
+                    <p>
+                        Checking out will set the room status to 'Dirty' for housekeeping and finalize the guest's stay. This action cannot be undone.
+                    </p>
+                </div>
                 <div className="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
                     <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
-                    <Button onClick={handleCheckOut}>Confirm Check-out</Button>
+                    <Button onClick={handleCheckOut}>
+                        {checkOutBalance > 0.01 ? 'Check-out with Balance' : 'Confirm Check-out'}
+                    </Button>
                 </div>
             </Modal>
         </div>

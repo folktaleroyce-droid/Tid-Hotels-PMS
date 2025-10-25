@@ -41,24 +41,24 @@ export const INITIAL_TAX_SETTINGS: TaxSettings = {
 };
 
 export const INITIAL_ROOM_TYPES: RoomType[] = [
-  { id: 1, name: 'Standard', baseRate: 150000, currency: 'NGN', capacity: 2 },
-  { id: 2, name: 'Double', baseRate: 187500, currency: 'NGN', capacity: 2 },
-  { id: 3, name: 'Double Executive', baseRate: 210000, currency: 'NGN', capacity: 2 },
-  { id: 4, name: 'Studio', baseRate: 300000, currency: 'NGN', capacity: 3 },
-  { id: 5, name: 'Aura Studio (Studio Executive)', baseRate: 375000, currency: 'NGN', capacity: 3 },
-  { id: 6, name: 'Serenity Suites (Junior Suite)', baseRate: 397500, currency: 'NGN', capacity: 4 },
-  { id: 7, name: 'Ile-Ife Suite (Presidential Suite)', baseRate: 450000, currency: 'NGN', capacity: 4 },
+  { id: 1, name: 'Standard', rates: { NGN: 150000, USD: 100 }, capacity: 2 },
+  { id: 2, name: 'Double', rates: { NGN: 187500, USD: 125 }, capacity: 2 },
+  { id: 3, name: 'Double Executive', rates: { NGN: 210000, USD: 140 }, capacity: 2 },
+  { id: 4, name: 'Studio', rates: { NGN: 300000, USD: 200 }, capacity: 3 },
+  { id: 5, name: 'Aura Studio (Studio Executive)', rates: { NGN: 375000, USD: 250 }, capacity: 3 },
+  { id: 6, name: 'Serenity Suites (Junior Suite)', rates: { NGN: 397500, USD: 265 }, capacity: 4 },
+  { id: 7, name: 'Ile-Ife Suite (Presidential Suite)', rates: { NGN: 450000, USD: 300 }, capacity: 4 },
 ];
 
 export const INITIAL_ROOMS: Room[] = [
   { id: 1, number: '101', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
   { id: 2, number: '102', type: 'Standard', rate: 150000, status: RoomStatus.Occupied, guestId: 1 },
   { id: 3, number: '103', type: 'Standard', rate: 150000, status: RoomStatus.Dirty },
-  { id: 4, number: '201', type: 'Deluxe', rate: 250000, status: RoomStatus.Vacant },
-  { id: 5, number: '202', type: 'Deluxe', rate: 250000, status: RoomStatus.Occupied, guestId: 2 },
-  { id: 6, number: '203', type: 'Deluxe', rate: 250000, status: RoomStatus.Dirty },
-  { id: 7, number: '301', type: 'Suite', rate: 400000, status: RoomStatus.Occupied, guestId: 3 },
-  { id: 8, number: '302', type: 'Suite', rate: 400000, status: RoomStatus.Vacant },
+  { id: 4, number: '201', type: 'Double', rate: 187500, status: RoomStatus.Vacant },
+  { id: 5, number: '202', type: 'Double', rate: 187500, status: RoomStatus.Occupied, guestId: 2 },
+  { id: 6, number: '203', type: 'Double Executive', rate: 210000, status: RoomStatus.Dirty },
+  { id: 7, number: '301', type: 'Studio', rate: 300000, status: RoomStatus.Occupied, guestId: 3 },
+  { id: 8, number: '302', type: 'Aura Studio (Studio Executive)', rate: 375000, status: RoomStatus.Vacant },
 ];
 
 export const INITIAL_GUESTS: Guest[] = [
@@ -79,6 +79,7 @@ export const INITIAL_GUESTS: Guest[] = [
     roomNumber: '102',
     roomType: 'Standard',
     bookingSource: 'Direct',
+    currency: 'NGN',
     specialRequests: 'Prefers high floor.',
     loyaltyPoints: 1620,
     loyaltyTier: LoyaltyTier.Gold,
@@ -98,8 +99,9 @@ export const INITIAL_GUESTS: Guest[] = [
     adults: 1,
     children: 1,
     roomNumber: '202',
-    roomType: 'Deluxe',
+    roomType: 'Double',
     bookingSource: 'Booking.com',
+    currency: 'NGN',
     specialRequests: 'Requires a baby cot.',
     loyaltyPoints: 480,
     loyaltyTier: LoyaltyTier.Bronze,
@@ -119,8 +121,9 @@ export const INITIAL_GUESTS: Guest[] = [
     adults: 2,
     children: 2,
     roomNumber: '301',
-    roomType: 'Suite',
+    roomType: 'Studio',
     bookingSource: 'Expedia',
+    currency: 'NGN',
     loyaltyPoints: 5150,
     loyaltyTier: LoyaltyTier.Platinum,
   },
@@ -129,12 +132,12 @@ export const INITIAL_GUESTS: Guest[] = [
 export const INITIAL_TRANSACTIONS: Transaction[] = [
     { id: 1, guestId: 1, description: 'Room Charge', amount: 150000, date: yesterday.toISOString().split('T')[0] },
     { id: 2, guestId: 1, description: 'Room Service', amount: 12000, date: yesterday.toISOString().split('T')[0] },
-    { id: 3, guestId: 2, description: 'Room Charge', amount: 250000, date: twoDaysAgo.toISOString().split('T')[0] },
-    { id: 4, guestId: 2, description: 'Room Charge', amount: 250000, date: yesterday.toISOString().split('T')[0] },
-    { id: 5, guestId: 3, description: 'Room Charge', amount: 400000, date: threeDaysAgo.toISOString().split('T')[0] },
+    { id: 3, guestId: 2, description: 'Room Charge', amount: 187500, date: twoDaysAgo.toISOString().split('T')[0] },
+    { id: 4, guestId: 2, description: 'Room Charge', amount: 187500, date: yesterday.toISOString().split('T')[0] },
+    { id: 5, guestId: 3, description: 'Room Charge', amount: 300000, date: threeDaysAgo.toISOString().split('T')[0] },
     { id: 6, guestId: 3, description: 'Payment - Credit Card', amount: -200000, date: threeDaysAgo.toISOString().split('T')[0] },
-    { id: 7, guestId: 3, description: 'Room Charge', amount: 400000, date: twoDaysAgo.toISOString().split('T')[0] },
-    { id: 8, guestId: 3, description: 'Room Charge', amount: 400000, date: yesterday.toISOString().split('T')[0] },
+    { id: 7, guestId: 3, description: 'Room Charge', amount: 300000, date: twoDaysAgo.toISOString().split('T')[0] },
+    { id: 8, guestId: 3, description: 'Room Charge', amount: 300000, date: yesterday.toISOString().split('T')[0] },
     { id: 9, guestId: 1, description: 'Payment - Cash', amount: -150000, date: today.toISOString().split('T')[0] },
     { id: 10, guestId: 2, description: 'Restaurant', amount: 20000, date: yesterday.toISOString().split('T')[0] },
 ];
@@ -162,7 +165,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
 
 export const INITIAL_RESERVATIONS: Reservation[] = [
     { id: 1, guestName: 'Emily Clark', guestEmail: 'emily@test.com', guestPhone: '111-222-3333', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Standard', ota: 'Booking.com' },
-    { id: 2, guestName: 'Michael Brown', guestEmail: 'mb@test.com', guestPhone: '444-555-6666', checkInDate: tomorrow.toISOString().split('T')[0], checkOutDate: new Date(new Date().setDate(today.getDate() + 3)).toISOString().split('T')[0], roomType: 'Deluxe', ota: 'Direct' },
+    { id: 2, guestName: 'Michael Brown', guestEmail: 'mb@test.com', guestPhone: '444-555-6666', checkInDate: tomorrow.toISOString().split('T')[0], checkOutDate: new Date(new Date().setDate(today.getDate() + 3)).toISOString().split('T')[0], roomType: 'Double', ota: 'Direct' },
 ];
 
 export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [

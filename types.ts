@@ -33,8 +33,10 @@ export interface Room {
 export interface RoomType {
   id: number;
   name: string;
-  baseRate: number;
-  currency: 'NGN' | 'USD';
+  rates: {
+    NGN: number;
+    USD: number;
+  };
   capacity: number;
 }
 
@@ -43,7 +45,7 @@ export interface Guest {
   name: string;
   email: string;
   phone: string;
-  birthdate: string;
+  birthdate?: string;
   nationality?: string;
   idType: string;
   idNumber: string;
@@ -56,6 +58,8 @@ export interface Guest {
   roomNumber: string;
   roomType: string;
   bookingSource: string; // Formerly 'ota'
+  currency: 'NGN' | 'USD';
+  discount?: number;
   specialRequests?: string;
   loyaltyPoints: number;
   loyaltyTier: LoyaltyTier;
@@ -191,7 +195,7 @@ export interface HotelData {
   updateEmployee: (employee: Employee) => void;
   addReservation: (reservation: Omit<Reservation, 'id'>) => void;
   addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => void;
-  updateRate: (roomType: string, newRate: number) => void;
+  updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => void;
   updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => void;
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;

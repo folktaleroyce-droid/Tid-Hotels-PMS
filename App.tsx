@@ -18,6 +18,7 @@ import { WelcomeScreen } from './components/WelcomeScreen.tsx';
 import { WalkIn } from './components/WalkIn.tsx';
 import { RoomTypes } from './components/RoomTypes.tsx';
 import { Settings } from './components/Settings.tsx';
+import { NotificationContainer } from './components/common/Notification.tsx';
 
 type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'room-types' | 'settings';
 
@@ -59,7 +60,7 @@ function App() {
       case 'financials':
         return <Financials hotelData={hotelData} />;
       case 'people-and-culture':
-        return <PeopleAndCulture hotelData={hotelData} />;
+        return <PeopleAndCulture />;
       case 'channel-manager':
         return <ChannelManager hotelData={hotelData} />;
       case 'loyalty':
@@ -76,15 +77,35 @@ function App() {
   }
 
   return (
-    <div className={`flex h-screen bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-200 ${theme}`}>
-      <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-slate-900 p-6 print:bg-white dark:print:bg-white print:p-0">
-          {renderView()}
-        </main>
+    <>
+       <style>
+        {`
+          @keyframes fadeInRight {
+            from {
+              opacity: 0;
+              transform: translateX(100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          .animate-fade-in-right {
+            animation: fadeInRight 0.5s ease-out forwards;
+          }
+        `}
+      </style>
+      <div className={`flex h-screen bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-200 ${theme}`}>
+        <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-slate-900 p-6 print:bg-white dark:print:bg-white print:p-0">
+            {renderView()}
+          </main>
+        </div>
+        <NotificationContainer logs={hotelData.syncLog} />
       </div>
-    </div>
+    </>
   );
 }
 

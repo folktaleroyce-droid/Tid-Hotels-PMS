@@ -75,6 +75,11 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       id: transactions.length + 1,
     };
     setTransactions(prev => [...prev, newTransaction]);
+    const guestName = guests.find(g => g.id === transaction.guestId)?.name || 'Unknown Guest';
+    const type = transaction.amount > 0 ? 'charge' : 'payment';
+    const amount = Math.abs(transaction.amount).toLocaleString();
+    const currencySymbol = '₦'; // Assuming NGN for in-house for now
+    addSyncLogEntry(`Posted ${type} of ${currencySymbol}${amount} for ${guestName}.`, 'info');
   };
 
   const addWalkInTransaction = (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => {
@@ -117,10 +122,12 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   const addOrder = (order: Omit<Order, 'id' | 'createdAt'>) => {
     const newOrder: Order = {
       ...order,
-      id: orders.length + 1,
+      id: orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1,
       createdAt: new Date().toISOString(),
     };
     setOrders(prev => [newOrder, ...prev]);
+    const roomNumber = rooms.find(r => r.id === order.roomId)?.number || 'N/A';
+    addSyncLogEntry(`New room service order for Room ${roomNumber} (Total: ₦${order.total.toLocaleString()}).`, 'success');
   };
 
   const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
@@ -190,6 +197,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       id: employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1,
     };
     setEmployees(prev => [...prev, newEmployee]);
+    addSyncLogEntry(`New employee added: ${newEmployee.name} (${newEmployee.jobTitle}).`, 'success');
   };
   
   const updateEmployee = (updatedEmployee: Employee) => {
@@ -211,9 +219,25 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       addSyncLogEntry(`New booking received from ${reservation.ota} for ${newReservation.guestName} (${newReservation.roomType}).`, 'success');
   };
   
-  const updateRate = (roomType: string, newRate: number) => {
-      setRooms(prevRooms => prevRooms.map(room => room.type === roomType ? { ...room, rate: newRate } : room));
-      addSyncLogEntry(`Base rate for ${roomType} rooms updated to ₦${newRate.toLocaleString()}.`, 'info');
+  const updateRate = (roomType: string, newRate: number, currency: 'NGN' | 'USD') => {
+      // This function is tricky now. Channel manager might only update one currency.
+      // Let's assume for now it updates the currency provided.
+      setRoomTypes(prev => prev.map(rt => {
+        if (rt.name === roomType) {
+            const newRates = { ...rt.rates, [currency]: newRate };
+            return { ...rt, rates: newRates };
+        }
+        return rt;
+      }));
+      // Also update the rate on individual un-occupied rooms
+      setRooms(prevRooms => prevRooms.map(room => {
+          if (room.type === roomType && room.status === RoomStatus.Vacant && currency === 'NGN') { // Only update room rate for primary currency to avoid confusion
+              return { ...room, rate: newRate };
+          }
+          return room;
+      }));
+      const currencySymbol = currency === 'NGN' ? '₦' : '$';
+      addSyncLogEntry(`Base rate for ${roomType} rooms updated to ${currencySymbol}${newRate.toLocaleString()} (${currency}).`, 'info');
   };
 
   const updateGuestDetails = (guestId: number, updatedGuest: Partial<Guest>) => {
@@ -248,6 +272,16 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const updateRoomType = (updatedRoomType: RoomType) => {
       setRoomTypes(prev => prev.map(rt => rt.id === updatedRoomType.id ? updatedRoomType : rt));
+      // Also update rates on associated vacant rooms if NGN rate changes
+      const oldRoomType = roomTypes.find(rt => rt.id === updatedRoomType.id);
+      if (oldRoomType && oldRoomType.rates.NGN !== updatedRoomType.rates.NGN) {
+          setRooms(prevRooms => prevRooms.map(room => {
+              if (room.type === updatedRoomType.name && room.status === RoomStatus.Vacant) {
+                  return { ...room, rate: updatedRoomType.rates.NGN };
+              }
+              return room;
+          }));
+      }
       addSyncLogEntry(`Room type "${updatedRoomType.name}" updated.`, 'info');
   };
 

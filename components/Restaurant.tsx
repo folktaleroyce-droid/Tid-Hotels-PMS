@@ -18,6 +18,7 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
     const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
+    const [customItem, setCustomItem] = useState({ name: '', price: '' });
     
     const occupiedRooms = rooms.filter(r => r.status === RoomStatus.Occupied);
 
@@ -30,6 +31,7 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
         setIsModalOpen(false);
         setSelectedRoom(null);
         setCurrentOrder([]);
+        setCustomItem({ name: '', price: '' }); // Reset custom item on close
     };
     
     const handleAddToOrder = (menuItem: { name: string; price: number }) => {
@@ -42,6 +44,16 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
         });
     };
     
+    const handleAddCustomItem = () => {
+        const price = parseFloat(customItem.price);
+        if (customItem.name.trim() && !isNaN(price) && price > 0) {
+            handleAddToOrder({ name: customItem.name.trim(), price });
+            setCustomItem({ name: '', price: '' }); // Reset form after adding
+        } else {
+            alert('Please enter a valid item name and a positive price.');
+        }
+    };
+
     const handlePlaceOrder = () => {
         if (!selectedRoom || currentOrder.length === 0) return;
         const total = currentOrder.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -81,7 +93,7 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <h4 className="font-bold mb-2">Menu</h4>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
                             {MENU_ITEMS.map(item => (
                                 <div key={item.name} className="flex justify-between items-center p-2 rounded bg-slate-200 dark:bg-slate-700">
                                     <span>{item.name} (₦{item.price.toLocaleString()})</span>
@@ -89,13 +101,37 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
                                 </div>
                             ))}
                         </div>
+                        <div className="mt-4 pt-4 border-t border-slate-300 dark:border-slate-600">
+                            <h5 className="font-bold mb-2">Custom Request</h5>
+                            <div className="space-y-2">
+                                <input
+                                    type="text"
+                                    placeholder="Item Name"
+                                    value={customItem.name}
+                                    onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
+                                    className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Price (₦)"
+                                    value={customItem.price}
+                                    onChange={(e) => setCustomItem({ ...customItem, price: e.target.value })}
+                                    className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                                />
+                                <Button variant="secondary" className="w-full" onClick={handleAddCustomItem}>
+                                    Add Custom Item
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <h4 className="font-bold mb-2">Current Order</h4>
                         <div className="space-y-1 max-h-80 overflow-y-auto">
-                            {currentOrder.map(item => (
+                            {currentOrder.length > 0 ? currentOrder.map(item => (
                                 <p key={item.name}>{item.quantity}x {item.name} - ₦{(item.price * item.quantity).toLocaleString()}</p>
-                            ))}
+                            )) : (
+                                <p className="text-slate-500">Your order is empty.</p>
+                            )}
                         </div>
                         <hr className="my-2 border-slate-300 dark:border-slate-600"/>
                         <p className="font-bold text-lg">Total: ₦{orderTotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
