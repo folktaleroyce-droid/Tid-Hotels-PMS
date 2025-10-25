@@ -57,8 +57,8 @@ export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
     todaysArrivalReservations.some(res => res.roomType === room.type)
   );
 
-  const dirtyRooms = rooms.filter(r => r.status === RoomStatusEnum.Dirty && !priorityRooms.some(p => p.id === r.id));
-  const cleaningRooms = rooms.filter(r => r.status === RoomStatusEnum.Cleaning && !priorityRooms.some(p => p.id === r.id));
+  const dirtyRooms = rooms.filter(r => r.status === RoomStatusEnum.Dirty);
+  const cleaningRooms = rooms.filter(r => r.status === RoomStatusEnum.Cleaning);
   const occupiedRooms = rooms.filter(r => r.status === RoomStatusEnum.Occupied);
 
   const RoomCard: React.FC<{ room: Room }> = ({ room }) => (

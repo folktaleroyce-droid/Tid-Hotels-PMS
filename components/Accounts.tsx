@@ -7,6 +7,8 @@ import { RoomStatus, PaymentStatus } from '../types.ts';
 import { ID_TYPES } from '../constants.tsx';
 import { PaymentStatusBadge } from './common/PaymentStatusBadge.tsx';
 import { PrintableGuestDetails } from './common/PrintableGuestDetails.tsx';
+// NEW EXTENSION - DO NOT MODIFY ORIGINAL
+import { Invoice } from './invoice/Invoice.tsx';
 
 interface AccountsProps {
   hotelData: HotelData;
@@ -34,6 +36,8 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+  // NEW EXTENSION - DO NOT MODIFY ORIGINAL
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [guestProfileForm, setGuestProfileForm] = useState<Partial<Guest>>({});
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -90,6 +94,8 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
     setIsProfileModalOpen(false);
     setIsPrintModalOpen(false);
     setIsRedeemModalOpen(false);
+    // NEW EXTENSION - DO NOT MODIFY ORIGINAL
+    setIsInvoiceModalOpen(false);
     setSelectedGuest(null);
     setErrors({});
     setRedeemForm({ points: '' });
@@ -300,9 +306,13 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
                     <Button variant="secondary" className="text-xs py-1 px-2 mt-1" onClick={() => { setIsFolioModalOpen(false); setIsRedeemModalOpen(true); }}>Redeem Points</Button>
                 </div>
             </div>
-            <div className="flex justify-end space-x-2">
-                <Button variant="secondary" onClick={() => handleOpenTransactionModal('charge')}>Post Charge</Button>
-                <Button onClick={() => handleOpenTransactionModal('payment')}>Post Payment</Button>
+            {/* NEW EXTENSION - DO NOT MODIFY ORIGINAL */}
+            <div className="flex justify-between space-x-2">
+                <Button variant="primary" className="flex-1" onClick={() => { setIsFolioModalOpen(false); setIsInvoiceModalOpen(true); }}>Generate Invoice</Button>
+                <div className="flex justify-end space-x-2 flex-1">
+                    <Button variant="secondary" onClick={() => handleOpenTransactionModal('charge')}>Post Charge</Button>
+                    <Button onClick={() => handleOpenTransactionModal('payment')}>Post Payment</Button>
+                </div>
             </div>
           </div>
         </Modal>
@@ -396,6 +406,17 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
               <Button onClick={handleAddTransaction}>Post Transaction</Button>
           </div>
       </Modal>
+
+      {/* NEW EXTENSION - DO NOT MODIFY ORIGINAL */}
+      {selectedGuest && (
+          <Modal isOpen={isInvoiceModalOpen} onClose={handleCloseModals} title={`Invoice for ${selectedGuest.name}`}>
+              <Invoice 
+                  guest={selectedGuest} 
+                  transactions={transactions.filter(t => t.guestId === selectedGuest.id)}
+                  taxSettings={taxSettings}
+              />
+          </Modal>
+      )}
 
     </Card>
   );

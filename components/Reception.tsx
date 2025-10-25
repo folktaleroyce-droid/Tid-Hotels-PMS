@@ -265,15 +265,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
     
     const handleCheckOut = () => {
         if (selectedRoomForAction) {
-            if (checkOutBalance > 0.01) { // Using a small epsilon for float comparison
-                const proceed = window.confirm(
-                    `This guest has an outstanding balance of ₦${checkOutBalance.toLocaleString()}. Do you want to proceed with check-out anyway?`
-                );
-                if (!proceed) {
-                    return; // User clicked 'Cancel', so we stop here.
-                }
-            }
-            // Proceed with checkout
+            // Confirmation is handled by the modal UI, so we proceed directly.
             updateRoomStatus(selectedRoomForAction.id, RoomStatus.Dirty);
         }
         handleCloseModals(); // Close modal and clean up state
@@ -432,13 +424,28 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                         {checkOutBalance <= 0.01 && <p className="text-green-600 font-semibold mt-1">Account Settled</p>}
                         {checkOutBalance > 0.01 && <p className="text-red-600 font-semibold mt-1">Outstanding Amount</p>}
                     </div>
+                    
+                    {checkOutBalance > 0.01 && (
+                        <div className="p-3 rounded-md bg-red-100 dark:bg-red-900/50 border border-red-500/50 flex items-start space-x-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div className="text-sm">
+                                <p className="font-semibold text-red-800 dark:text-red-200">Warning: Outstanding Balance</p>
+                                <p className="text-red-700 dark:text-red-300 mt-1">
+                                    Proceeding will check the guest out without settling the account.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     <p>
                         Checking out will set the room status to 'Dirty' for housekeeping and finalize the guest's stay. This action cannot be undone.
                     </p>
                 </div>
                 <div className="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
                     <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
-                    <Button onClick={handleCheckOut}>
+                    <Button onClick={handleCheckOut} className={checkOutBalance > 0.01 ? "bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white" : ""}>
                         {checkOutBalance > 0.01 ? 'Check-out with Balance' : 'Confirm Check-out'}
                     </Button>
                 </div>

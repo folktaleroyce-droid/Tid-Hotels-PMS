@@ -133,28 +133,46 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
     const roomToUpdate = rooms.find(r => r.id === roomId);
 
-    // Do nothing if room is not found or status is already the same
     if (!roomToUpdate || roomToUpdate.status === status) {
       return;
     }
-    
-    // --- Loyalty Points Accrual on Check-out ---
-    // If a room is changing from Occupied to Dirty, it signifies a check-out.
+
     if (roomToUpdate.status === RoomStatus.Occupied && status === RoomStatus.Dirty && roomToUpdate.guestId) {
         const checkingOutGuestId = roomToUpdate.guestId;
         const guest = guests.find(g => g.id === checkingOutGuestId);
         
-        // Calculate total charges for the stay
         const totalCharges = transactions
             .filter(t => t.guestId === checkingOutGuestId && t.amount > 0)
             .reduce((acc, t) => acc + t.amount, 0);
 
-        // Award points (e.g., 1 point per ₦1000 spent)
         const pointsEarned = Math.floor(totalCharges / 1000);
         
-        if (guest && pointsEarned > 0) {
-            addLoyaltyPoints(checkingOutGuestId, pointsEarned, `Points for stay in Room ${roomToUpdate.number}`);
-            addSyncLogEntry(`${guest.name} earned ${pointsEarned} loyalty points from their stay.`, 'success');
+        if (guest) {
+            if (pointsEarned > 0) {
+                 const newLoyaltyTransaction: LoyaltyTransaction = {
+                    id: loyaltyTransactions.length + 1,
+                    guestId: checkingOutGuestId,
+                    points: pointsEarned,
+                    description: `Points for stay in Room ${roomToUpdate.number}`,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                setLoyaltyTransactions(prev => [newLoyaltyTransaction, ...prev]);
+            }
+
+            setGuests(prevGuests => prevGuests.map(g => {
+                if (g.id === checkingOutGuestId) {
+                    const newTotalPoints = g.loyaltyPoints + pointsEarned;
+                    const newTier = getLoyaltyTierForPoints(newTotalPoints);
+                    if (newTier !== g.loyaltyTier) {
+                        addSyncLogEntry(`Guest ${g.name} has been upgraded to ${newTier} tier!`, 'success');
+                    }
+                    if (pointsEarned > 0) {
+                         addSyncLogEntry(`${g.name} earned ${pointsEarned} loyalty points from their stay.`, 'success');
+                    }
+                    return { ...g, loyaltyPoints: newTotalPoints, loyaltyTier: newTier, roomNumber: '' };
+                }
+                return g;
+            }));
         }
     }
     
@@ -163,24 +181,18 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const newRooms = rooms.map(room => {
       if (room.id === roomId) {
-        // If the new status is not 'Occupied', the guestId should be cleared.
         const newGuestId = status === RoomStatus.Occupied ? guestId : undefined;
         return { ...room, status, guestId: newGuestId };
       }
       return room;
     });
 
-    // Atomically update the state
     setRooms(newRooms);
 
-    // --- Perform side-effects after state update ---
-
-    // Log the specific status change to provide immediate feedback, as requested.
     addSyncLogEntry(`Room ${roomToUpdate.number} status updated from ${oldStatus} to ${status}.`, 'info');
 
     const newAvailability = getAvailability(newRooms);
     
-    // Check for changes in availability and log them
     const allRoomTypes = [...new Set([...Object.keys(oldAvailability), ...Object.keys(newAvailability)])];
     allRoomTypes.forEach(roomType => {
         const oldAvail = oldAvailability[roomType] || 0;
@@ -220,8 +232,6 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
   
   const updateRate = (roomType: string, newRate: number, currency: 'NGN' | 'USD') => {
-      // This function is tricky now. Channel manager might only update one currency.
-      // Let's assume for now it updates the currency provided.
       setRoomTypes(prev => prev.map(rt => {
         if (rt.name === roomType) {
             const newRates = { ...rt.rates, [currency]: newRate };
@@ -229,9 +239,8 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
         return rt;
       }));
-      // Also update the rate on individual un-occupied rooms
       setRooms(prevRooms => prevRooms.map(room => {
-          if (room.type === roomType && room.status === RoomStatus.Vacant && currency === 'NGN') { // Only update room rate for primary currency to avoid confusion
+          if (room.type === roomType && room.status === RoomStatus.Vacant && currency === 'NGN') { 
               return { ...room, rate: newRate };
           }
           return room;
@@ -272,7 +281,6 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const updateRoomType = (updatedRoomType: RoomType) => {
       setRoomTypes(prev => prev.map(rt => rt.id === updatedRoomType.id ? updatedRoomType : rt));
-      // Also update rates on associated vacant rooms if NGN rate changes
       const oldRoomType = roomTypes.find(rt => rt.id === updatedRoomType.id);
       if (oldRoomType && oldRoomType.rates.NGN !== updatedRoomType.rates.NGN) {
           setRooms(prevRooms => prevRooms.map(room => {
