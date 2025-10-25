@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, ReactNode, useEffect, useRef } from 'react';
 import { RoomStatus, MaintenanceStatus, LoyaltyTier, HotelAction } from '../types.ts';
-import type { SyncLogEntry } from '../types.ts';
+import type { SyncLogEntry, WalkInTransaction } from '../types.ts';
 import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_LOYALTY_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS, INITIAL_MAINTENANCE_REQUESTS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS } from '../constants.tsx';
 
 // Define the shape of our state
@@ -10,7 +10,7 @@ type HotelState = {
     reservations: typeof INITIAL_RESERVATIONS;
     transactions: typeof INITIAL_TRANSACTIONS;
     loyaltyTransactions: typeof INITIAL_LOYALTY_TRANSACTIONS;
-    walkInTransactions: any[]; // Define properly if used
+    walkInTransactions: WalkInTransaction[];
     orders: typeof INITIAL_ORDERS;
     employees: typeof INITIAL_EMPLOYEES;
     syncLog: SyncLogEntry[];
@@ -136,6 +136,139 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
                 syncLog: addLog(`Posted ${type} of ₦${Math.abs(action.payload.amount).toLocaleString()} for ${guestName}.`, 'info')
             };
         }
+        
+        case 'ADD_WALK_IN_TRANSACTION': {
+            const newTransaction = { 
+                ...action.payload, 
+                id: (state.walkInTransactions[state.walkInTransactions.length - 1]?.id || 0) + 1,
+                date: new Date().toISOString().split('T')[0]
+            };
+            return {
+                ...state,
+                walkInTransactions: [...state.walkInTransactions, newTransaction],
+                syncLog: addLog(`New walk-in transaction of ₦${newTransaction.amountPaid.toLocaleString()} for ${newTransaction.service}.`, 'success')
+            };
+        }
+        
+        case 'ADD_ORDER': {
+            const newOrder = {
+                ...action.payload,
+                id: (state.orders[state.orders.length - 1]?.id || 0) + 1,
+                createdAt: new Date().toISOString()
+            };
+            const roomNumber = state.rooms.find(r => r.id === action.payload.roomId)?.number || 'N/A';
+            return {
+                ...state,
+                orders: [...state.orders, newOrder],
+                syncLog: addLog(`New room service order for Room ${roomNumber}.`, 'info')
+            };
+        }
+        
+        case 'UPDATE_RATE': {
+            const { roomType, newRate, currency } = action.payload;
+            return {
+                ...state,
+                roomTypes: state.roomTypes.map(rt => rt.name === roomType ? { ...rt, rates: { ...rt.rates, [currency]: newRate } } : rt),
+                syncLog: addLog(`Rate for ${roomType} updated to ${currency}${newRate}. Pushing to channels.`, 'info')
+            };
+        }
+        
+        case 'UPDATE_GUEST_DETAILS': {
+            const { guestId, updatedGuest } = action.payload;
+            const guestName = state.guests.find(g => g.id === guestId)?.name;
+            return {
+                ...state,
+                guests: state.guests.map(g => g.id === guestId ? { ...g, ...updatedGuest } : g),
+                syncLog: addLog(`Profile details updated for ${guestName}.`, 'info')
+            };
+        }
+        
+        case 'ADD_MAINTENANCE_REQUEST': {
+            const newRequest = {
+                ...action.payload,
+                id: (state.maintenanceRequests[state.maintenanceRequests.length - 1]?.id || 0) + 1,
+                reportedAt: new Date().toISOString().split('T')[0],
+                status: MaintenanceStatus.Reported,
+            };
+            return {
+                ...state,
+                maintenanceRequests: [newRequest, ...state.maintenanceRequests],
+                syncLog: addLog(`New maintenance request for ${newRequest.location}: ${newRequest.description}`, 'warn')
+            };
+        }
+
+        case 'UPDATE_MAINTENANCE_REQUEST_STATUS': {
+            const { requestId, status } = action.payload;
+            return {
+                ...state,
+                maintenanceRequests: state.maintenanceRequests.map(req => req.id === requestId ? { ...req, status } : req),
+            };
+        }
+
+        case 'ADD_LOYALTY_POINTS': {
+            const { guestId, points, description } = action.payload;
+            const newLT = { id: (state.loyaltyTransactions[0]?.id || 0) + 1, guestId, points, description, date: new Date().toISOString().split('T')[0] };
+            const newGuests = state.guests.map(g => {
+                if (g.id === guestId) {
+                    const newTotalPoints = g.loyaltyPoints + points;
+                    return { ...g, loyaltyPoints: newTotalPoints, loyaltyTier: getLoyaltyTierForPoints(newTotalPoints) };
+                }
+                return g;
+            });
+            return {
+                ...state,
+                guests: newGuests,
+                loyaltyTransactions: [newLT, ...state.loyaltyTransactions],
+            };
+        }
+
+        case 'REDEEM_LOYALTY_POINTS': {
+            const { guestId, pointsToRedeem } = action.payload;
+            const guest = state.guests.find(g => g.id === guestId);
+            if (!guest || guest.loyaltyPoints < pointsToRedeem) {
+                return state; // This logic is handled in the component, but good to have a safeguard
+            }
+
+            const redemptionValue = pointsToRedeem * 10; // 100 points = N1000 credit
+            const newLT = { id: (state.loyaltyTransactions[0]?.id || 0) + 1, guestId, points: -pointsToRedeem, description: 'Points Redemption', date: new Date().toISOString().split('T')[0] };
+            const newTransaction = { id: (state.transactions[state.transactions.length-1]?.id || 0) + 1, guestId, description: `Loyalty Points Redemption (-${pointsToRedeem} pts)`, amount: -redemptionValue, date: new Date().toISOString().split('T')[0] };
+            const newGuests = state.guests.map(g => {
+                if (g.id === guestId) {
+                    const newTotalPoints = g.loyaltyPoints - pointsToRedeem;
+                    return { ...g, loyaltyPoints: newTotalPoints, loyaltyTier: getLoyaltyTierForPoints(newTotalPoints) };
+                }
+                return g;
+            });
+
+            return {
+                ...state,
+                guests: newGuests,
+                loyaltyTransactions: [newLT, ...state.loyaltyTransactions],
+                transactions: [...state.transactions, newTransaction],
+            };
+        }
+
+        case 'ADD_ROOM_TYPE': {
+            const newRoomType = { ...action.payload, id: (state.roomTypes[state.roomTypes.length - 1]?.id || 0) + 1 };
+            return {
+                ...state,
+                roomTypes: [...state.roomTypes, newRoomType],
+                syncLog: addLog(`New room type created: ${newRoomType.name}.`, 'success')
+            };
+        }
+        case 'UPDATE_ROOM_TYPE': {
+            return {
+                ...state,
+                roomTypes: state.roomTypes.map(rt => rt.id === action.payload.id ? action.payload : rt),
+                syncLog: addLog(`Details updated for room type: ${action.payload.name}.`, 'info')
+            };
+        }
+        case 'DELETE_ROOM_TYPE': {
+            return {
+                ...state,
+                roomTypes: state.roomTypes.filter(rt => rt.id !== action.payload),
+            };
+        }
 
         case 'ADD_RESERVATION': {
             const { payload } = action;
@@ -151,7 +284,6 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
             };
         }
         
-        // Add other action cases here...
         case 'ADD_EMPLOYEE': {
             const newEmployee = { ...action.payload, id: (state.employees[0]?.id || 0) + 1 };
             return { ...state, employees: [...state.employees, newEmployee], syncLog: addLog(`New employee added: ${newEmployee.name}.`, 'success')};
@@ -235,30 +367,39 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     const value = {
         ...state,
         checkInGuest: (payload: Extract<HotelAction, { type: 'CHECK_IN_GUEST' }>['payload']) => broadcastDispatch({ type: 'CHECK_IN_GUEST', payload }),
+        addOrder: (payload: Extract<HotelAction, { type: 'ADD_ORDER' }>['payload']) => broadcastDispatch({ type: 'ADD_ORDER', payload }),
         updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => broadcastDispatch({ type: 'UPDATE_ROOM_STATUS', payload: { roomId, status, guestId } }),
-        addTransaction: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_TRANSACTION', payload }),
-        addReservation: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_RESERVATION', payload }),
-        addEmployee: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_EMPLOYEE', payload }),
-        updateEmployee: (payload: any) => broadcastDispatch({ type: 'UPDATE_EMPLOYEE', payload }),
-        deleteEmployee: (employeeId: number) => broadcastDispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId }),
-        clearAllTransactions: () => broadcastDispatch({ type: 'CLEAR_ALL_TRANSACTIONS' }),
-        deleteTransaction: (transactionId: number) => broadcastDispatch({ type: 'DELETE_TRANSACTION', payload: transactionId }),
-        updateOrderStatus: (orderId: number, status: any) => broadcastDispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } }),
+        addTransaction: (payload: Extract<HotelAction, { type: 'ADD_TRANSACTION' }>['payload']) => broadcastDispatch({ type: 'ADD_TRANSACTION', payload }),
+        addWalkInTransaction: (payload: Extract<HotelAction, { type: 'ADD_WALK_IN_TRANSACTION' }>['payload']) => broadcastDispatch({ type: 'ADD_WALK_IN_TRANSACTION', payload }),
+        addEmployee: (payload: Extract<HotelAction, { type: 'ADD_EMPLOYEE' }>['payload']) => broadcastDispatch({ type: 'ADD_EMPLOYEE', payload }),
+        updateEmployee: (payload: Extract<HotelAction, { type: 'UPDATE_EMPLOYEE' }>['payload']) => broadcastDispatch({ type: 'UPDATE_EMPLOYEE', payload }),
+        addReservation: (payload: Extract<HotelAction, { type: 'ADD_RESERVATION' }>['payload']) => broadcastDispatch({ type: 'ADD_RESERVATION', payload }),
         addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => broadcastDispatch({ type: 'ADD_SYNC_LOG_ENTRY', payload: { message, level } }),
+        updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => broadcastDispatch({ type: 'UPDATE_RATE', payload: { roomType, newRate, currency } }),
+        updateGuestDetails: (guestId: number, updatedGuest: Partial<any>) => broadcastDispatch({ type: 'UPDATE_GUEST_DETAILS', payload: { guestId, updatedGuest } }),
+        addMaintenanceRequest: (payload: Extract<HotelAction, { type: 'ADD_MAINTENANCE_REQUEST' }>['payload']) => broadcastDispatch({ type: 'ADD_MAINTENANCE_REQUEST', payload }),
+        updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => broadcastDispatch({ type: 'UPDATE_MAINTENANCE_REQUEST_STATUS', payload: { requestId, status } }),
+        addLoyaltyPoints: (guestId: number, points: number, description: string) => broadcastDispatch({ type: 'ADD_LOYALTY_POINTS', payload: { guestId, points, description } }),
+        redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => {
+            const guest = state.guests.find((g: any) => g.id === guestId);
+            if (!guest || guest.loyaltyPoints < pointsToRedeem) {
+                const message = `Redemption failed: Not enough points for ${guest?.name || 'guest'}.`;
+                dispatch({ type: 'ADD_SYNC_LOG_ENTRY', payload: { message, level: 'error' } });
+                return { success: false, message };
+            }
+            broadcastDispatch({ type: 'REDEEM_LOYALTY_POINTS', payload: { guestId, pointsToRedeem } });
+            const message = `Successfully redeemed ${pointsToRedeem} points for ${guest.name}.`;
+            return { success: true, message };
+        },
+        addRoomType: (payload: Extract<HotelAction, { type: 'ADD_ROOM_TYPE' }>['payload']) => broadcastDispatch({ type: 'ADD_ROOM_TYPE', payload }),
+        updateRoomType: (payload: Extract<HotelAction, { type: 'UPDATE_ROOM_TYPE' }>['payload']) => broadcastDispatch({ type: 'UPDATE_ROOM_TYPE', payload }),
+        deleteRoomType: (roomTypeId: number) => broadcastDispatch({ type: 'DELETE_ROOM_TYPE', payload: roomTypeId }),
+        clearAllTransactions: () => broadcastDispatch({ type: 'CLEAR_ALL_TRANSACTIONS' }),
+        updateOrderStatus: (orderId: number, status: any) => broadcastDispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } }),
+        deleteTransaction: (transactionId: number) => broadcastDispatch({ type: 'DELETE_TRANSACTION', payload: transactionId }),
+        deleteEmployee: (employeeId: number) => broadcastDispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId }),
         setStopSell: (payload: any) => broadcastDispatch({ type: 'SET_STOP_SELL', payload }),
         setTaxSettings: (payload: any) => broadcastDispatch({ type: 'SET_TAX_SETTINGS', payload }),
-        // Placeholder for unimplemented actions to prevent crashes
-        addOrder: (order: any) => console.warn('addOrder not implemented in reducer'),
-        addWalkInTransaction: (transaction: any) => console.warn('addWalkInTransaction not implemented in reducer'),
-        updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => console.warn('updateRate not implemented in reducer'),
-        updateGuestDetails: (guestId: number, updatedGuest: Partial<any>) => console.warn('updateGuestDetails not implemented in reducer'),
-        addMaintenanceRequest: (request: any) => console.warn('addMaintenanceRequest not implemented in reducer'),
-        updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => console.warn('updateMaintenanceRequestStatus not implemented in reducer'),
-        addLoyaltyPoints: (guestId: number, points: number, description: string) => console.warn('addLoyaltyPoints not implemented in reducer'),
-        redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => console.warn('redeemLoyaltyPoints not implemented in reducer'),
-        addRoomType: (roomType: any) => console.warn('addRoomType not implemented in reducer'),
-        updateRoomType: (roomType: any) => console.warn('updateRoomType not implemented in reducer'),
-        deleteRoomType: (roomTypeId: number) => console.warn('deleteRoomType not implemented in reducer'),
     };
 
     return (

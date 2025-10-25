@@ -32,10 +32,6 @@ const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
     const { transactions, guests, walkInTransactions, addSyncLogEntry, clearAllTransactions } = hotelData;
     const [dateRange, setDateRange] = useState({ start: thirtyDaysAgoStr, end: today });
-
-    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [recipientEmail, setRecipientEmail] = useState('');
-    const [emailError, setEmailError] = useState('');
     const [isClearModalOpen, setIsClearModalOpen] = useState(false);
     
     const getGuestName = (guestId: number) => {
@@ -177,27 +173,6 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
         XLSX.writeFile(wb, `Tide_Hotels_Full_Transaction_History.xlsx`);
         addSyncLogEntry('Downloaded complete transaction history.', 'info');
     };
-    
-    const handleOpenEmailModal = () => setIsEmailModalOpen(true);
-    const handleCloseEmailModal = () => {
-        setIsEmailModalOpen(false);
-        setRecipientEmail('');
-        setEmailError('');
-    };
-
-    const handleSendEmail = () => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(recipientEmail)) {
-            setEmailError('Please enter a valid email address.');
-            return;
-        }
-        
-        // Simulate sending email
-        addSyncLogEntry(`Financial report for ${dateRange.start} to ${dateRange.end} sent to ${recipientEmail}.`, 'success');
-        alert(`Report successfully sent to ${recipientEmail}.`);
-        handleCloseEmailModal();
-    };
-
 
     return (
         <div>
@@ -246,10 +221,6 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
                         />
                     </div>
                     <div className="self-end flex flex-wrap gap-2">
-                         <Button onClick={handleOpenEmailModal} variant="secondary" className="flex items-center space-x-2">
-                             <EmailIcon />
-                             <span>Email Report</span>
-                         </Button>
                          <Button onClick={handlePrint} variant="secondary" className="flex items-center space-x-2">
                             <PrintIcon/>
                             <span>Print Report</span>
@@ -340,30 +311,6 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
                 </div>
             </Card>
 
-            <Modal isOpen={isEmailModalOpen} onClose={handleCloseEmailModal} title="Email Financial Report">
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="email-recipient" className="block text-sm font-medium mb-1">Recipient Email Address*</label>
-                        <input
-                            type="email"
-                            id="email-recipient"
-                            value={recipientEmail}
-                            onChange={(e) => { setRecipientEmail(e.target.value); setEmailError(''); }}
-                            placeholder="recipient@example.com"
-                            className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
-                        />
-                        {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                        This will simulate sending a summary of the current report for the period <strong>{dateRange.start}</strong> to <strong>{dateRange.end}</strong>.
-                    </p>
-                </div>
-                <div className="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-                    <Button variant="secondary" onClick={handleCloseEmailModal}>Cancel</Button>
-                    <Button onClick={handleSendEmail}>Send Email</Button>
-                </div>
-            </Modal>
-            
             <Modal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} title="Confirm Clear All Data">
                 <div className="space-y-4">
                     <div className="p-3 rounded-md bg-red-100 dark:bg-red-900/50 border border-red-500/50 flex items-start space-x-3">
@@ -404,10 +351,6 @@ const PrintIcon = () => (
 
 const ExcelIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-);
-
-const EmailIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 );
 
 const TrashIcon = () => (

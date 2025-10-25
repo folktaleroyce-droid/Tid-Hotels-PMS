@@ -217,7 +217,7 @@ export interface HotelData {
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
   addLoyaltyPoints: (guestId: number, points: number, description: string) => void;
-  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => void;
+  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => { success: boolean, message: string };
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
