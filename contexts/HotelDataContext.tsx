@@ -1,4 +1,4 @@
-import React, { createContext, useState, ReactNode } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { RoomStatus, MaintenanceStatus, LoyaltyTier } from '../types.ts';
 import type { Room, Guest, Transaction, Order, Employee, HotelData, Reservation, SyncLogEntry, MaintenanceRequest, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings } from '../types.ts';
 import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_LOYALTY_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS, INITIAL_MAINTENANCE_REQUESTS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS } from '../constants.tsx';
@@ -23,19 +23,88 @@ const getLoyaltyTierForPoints = (points: number): LoyaltyTier => {
 };
 
 export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
-  const [guests, setGuests] = useState<Guest[]>(INITIAL_GUESTS);
-  const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-  const [loyaltyTransactions, setLoyaltyTransactions] = useState<LoyaltyTransaction[]>(INITIAL_LOYALTY_TRANSACTIONS);
-  const [walkInTransactions, setWalkInTransactions] = useState<WalkInTransaction[]>([]);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
-  const [syncLog, setSyncLog] = useState<SyncLogEntry[]>([]);
-  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>(INITIAL_MAINTENANCE_REQUESTS);
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(INITIAL_ROOM_TYPES);
-  const [taxSettings, setTaxSettings] = useState<TaxSettings>(INITIAL_TAX_SETTINGS);
-  const [stopSell, setStopSell] = useState<{ [roomType: string]: boolean }>({});
+  const [rooms, _setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [guests, _setGuests] = useState<Guest[]>(INITIAL_GUESTS);
+  const [reservations, _setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
+  const [transactions, _setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [loyaltyTransactions, _setLoyaltyTransactions] = useState<LoyaltyTransaction[]>(INITIAL_LOYALTY_TRANSACTIONS);
+  const [walkInTransactions, _setWalkInTransactions] = useState<WalkInTransaction[]>([]);
+  const [orders, _setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [employees, _setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+  const [syncLog, _setSyncLog] = useState<SyncLogEntry[]>([]);
+  const [maintenanceRequests, _setMaintenanceRequests] = useState<MaintenanceRequest[]>(INITIAL_MAINTENANCE_REQUESTS);
+  const [roomTypes, _setRoomTypes] = useState<RoomType[]>(INITIAL_ROOM_TYPES);
+  const [taxSettings, _setTaxSettings] = useState<TaxSettings>(INITIAL_TAX_SETTINGS);
+  const [stopSell, _setStopSell] = useState<{ [roomType: string]: boolean }>({});
+
+  const channelRef = useRef<BroadcastChannel>();
+  const isExternalUpdate = useRef(false);
+
+  useEffect(() => {
+    channelRef.current = new BroadcastChannel('tide_pms_state_sync');
+    const channel = channelRef.current;
+    
+    const handleMessage = (event: MessageEvent) => {
+        isExternalUpdate.current = true;
+        const { type, payload } = event.data;
+        switch (type) {
+            case 'SET_ROOMS': _setRooms(payload); break;
+            case 'SET_GUESTS': _setGuests(payload); break;
+            case 'SET_RESERVATIONS': _setReservations(payload); break;
+            case 'SET_TRANSACTIONS': _setTransactions(payload); break;
+            case 'SET_LOYALTY_TRANSACTIONS': _setLoyaltyTransactions(payload); break;
+            case 'SET_WALKIN_TRANSACTIONS': _setWalkInTransactions(payload); break;
+            case 'SET_ORDERS': _setOrders(payload); break;
+            case 'SET_EMPLOYEES': _setEmployees(payload); break;
+            case 'SET_SYNCLOG': _setSyncLog(payload); break;
+            case 'SET_MAINTENANCE_REQUESTS': _setMaintenanceRequests(payload); break;
+            case 'SET_ROOMTYPES': _setRoomTypes(payload); break;
+            case 'SET_TAX_SETTINGS': _setTaxSettings(payload); break;
+            case 'SET_STOPSELL': _setStopSell(payload); break;
+        }
+        setTimeout(() => { isExternalUpdate.current = false; }, 0);
+    };
+
+    channel.addEventListener('message', handleMessage);
+
+    return () => {
+        channel.removeEventListener('message', handleMessage);
+        channel.close();
+    };
+  }, []);
+
+  const createSyncedSetter = <T,>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    messageType: string
+  ): React.Dispatch<React.SetStateAction<T>> => {
+    return (valueOrFn) => {
+      setter((prevState) => {
+        const newState = typeof valueOrFn === 'function'
+          ? (valueOrFn as (prevState: T) => T)(prevState)
+          : valueOrFn;
+        
+        if (!isExternalUpdate.current) {
+          channelRef.current?.postMessage({ type: messageType, payload: newState });
+        }
+        
+        return newState;
+      });
+    };
+  };
+
+  const setRooms = createSyncedSetter(_setRooms, 'SET_ROOMS');
+  const setGuests = createSyncedSetter(_setGuests, 'SET_GUESTS');
+  const setReservations = createSyncedSetter(_setReservations, 'SET_RESERVATIONS');
+  const setTransactions = createSyncedSetter(_setTransactions, 'SET_TRANSACTIONS');
+  const setLoyaltyTransactions = createSyncedSetter(_setLoyaltyTransactions, 'SET_LOYALTY_TRANSACTIONS');
+  const setWalkInTransactions = createSyncedSetter(_setWalkInTransactions, 'SET_WALKIN_TRANSACTIONS');
+  const setOrders = createSyncedSetter(_setOrders, 'SET_ORDERS');
+  const setEmployees = createSyncedSetter(_setEmployees, 'SET_EMPLOYEES');
+  const setSyncLog = createSyncedSetter(_setSyncLog, 'SET_SYNCLOG');
+  const setMaintenanceRequests = createSyncedSetter(_setMaintenanceRequests, 'SET_MAINTENANCE_REQUESTS');
+  const setRoomTypes = createSyncedSetter(_setRoomTypes, 'SET_ROOMTYPES');
+  const setTaxSettings = createSyncedSetter(_setTaxSettings, 'SET_TAX_SETTINGS');
+  const setStopSell = createSyncedSetter(_setStopSell, 'SET_STOPSELL');
 
   const addSyncLogEntry = (message: string, level: SyncLogEntry['level'] = 'info') => {
     const newEntry: SyncLogEntry = {

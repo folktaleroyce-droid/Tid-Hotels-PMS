@@ -42,23 +42,55 @@ export const INITIAL_TAX_SETTINGS: TaxSettings = {
 
 export const INITIAL_ROOM_TYPES: RoomType[] = [
   { id: 1, name: 'Standard', rates: { NGN: 150000, USD: 100 }, capacity: 2 },
-  { id: 2, name: 'Double', rates: { NGN: 187500, USD: 125 }, capacity: 2 },
+  { id: 2, name: 'Double', rates: { NGN: 187000, USD: 125 }, capacity: 2 },
   { id: 3, name: 'Double Executive', rates: { NGN: 210000, USD: 140 }, capacity: 2 },
   { id: 4, name: 'Studio', rates: { NGN: 300000, USD: 200 }, capacity: 3 },
-  { id: 5, name: 'Aura Studio (Studio Executive)', rates: { NGN: 375000, USD: 250 }, capacity: 3 },
-  { id: 6, name: 'Serenity Suites (Junior Suite)', rates: { NGN: 397500, USD: 265 }, capacity: 4 },
-  { id: 7, name: 'Ile-Ife Suite (Presidential Suite)', rates: { NGN: 450000, USD: 300 }, capacity: 4 },
+  { id: 5, name: 'Studio Executive', rates: { NGN: 375000, USD: 250 }, capacity: 3 },
+  { id: 6, name: 'Junior Suite', rates: { NGN: 397500, USD: 265 }, capacity: 4 },
+  { id: 7, name: 'Presidential Suite', rates: { NGN: 450000, USD: 300 }, capacity: 4 },
 ];
 
 export const INITIAL_ROOMS: Room[] = [
-  { id: 1, number: '101', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 2, number: '102', type: 'Standard', rate: 150000, status: RoomStatus.Occupied, guestId: 1 },
-  { id: 3, number: '103', type: 'Standard', rate: 150000, status: RoomStatus.Dirty },
-  { id: 4, number: '201', type: 'Double', rate: 187500, status: RoomStatus.Vacant },
-  { id: 5, number: '202', type: 'Double', rate: 187500, status: RoomStatus.Occupied, guestId: 2 },
-  { id: 6, number: '203', type: 'Double Executive', rate: 210000, status: RoomStatus.Dirty },
-  { id: 7, number: '301', type: 'Studio', rate: 300000, status: RoomStatus.Occupied, guestId: 3 },
-  { id: 8, number: '302', type: 'Aura Studio (Studio Executive)', rate: 375000, status: RoomStatus.Vacant },
+  // Standard
+  { id: 1, number: '101', type: 'Standard', rate: 150000, status: RoomStatus.Dirty },
+  { id: 2, number: '103', type: 'Standard', rate: 150000, status: RoomStatus.Cleaning },
+  { id: 3, number: '104', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 4, number: '210', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 5, number: '212', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 6, number: '214', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 7, number: '310', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 8, number: '312', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  { id: 9, number: '314', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
+  // Double
+  { id: 10, number: '102', type: 'Double', rate: 187000, status: RoomStatus.Occupied, guestId: 1 },
+  { id: 11, number: '209', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 12, number: '211', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 13, number: '213', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 14, number: '309', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 15, number: '311', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 16, number: '313', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  { id: 17, number: '315', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
+  // Double Executive
+  { id: 18, number: '207', type: 'Double Executive', rate: 210000, status: RoomStatus.OutOfOrder },
+  { id: 19, number: '208', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
+  { id: 20, number: '307', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
+  { id: 21, number: '308', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
+  // Studio
+  { id: 22, number: '202', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
+  { id: 23, number: '204', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
+  { id: 24, number: '302', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
+  { id: 25, number: '304', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
+  // Studio Executive
+  { id: 26, number: '206', type: 'Studio Executive', rate: 375000, status: RoomStatus.Vacant },
+  { id: 27, number: '306', type: 'Studio Executive', rate: 375000, status: RoomStatus.Vacant },
+  // Junior Suite
+  { id: 28, number: '203', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
+  { id: 29, number: '205', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
+  { id: 30, number: '303', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
+  { id: 31, number: '305', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
+  // Presidential Suite
+  { id: 32, number: '201', type: 'Presidential Suite', rate: 450000, status: RoomStatus.Occupied, guestId: 2 },
+  { id: 33, number: '301', type: 'Presidential Suite', rate: 450000, status: RoomStatus.Occupied, guestId: 3 },
 ];
 
 export const INITIAL_GUESTS: Guest[] = [
@@ -77,7 +109,7 @@ export const INITIAL_GUESTS: Guest[] = [
     adults: 2,
     children: 0,
     roomNumber: '102',
-    roomType: 'Standard',
+    roomType: 'Double',
     bookingSource: 'Direct',
     currency: 'NGN',
     specialRequests: 'Prefers high floor.',
@@ -98,8 +130,8 @@ export const INITIAL_GUESTS: Guest[] = [
     departureDate: tomorrow.toISOString().split('T')[0],
     adults: 1,
     children: 1,
-    roomNumber: '202',
-    roomType: 'Double',
+    roomNumber: '201',
+    roomType: 'Presidential Suite',
     bookingSource: 'Booking.com',
     currency: 'NGN',
     specialRequests: 'Requires a baby cot.',
@@ -121,7 +153,7 @@ export const INITIAL_GUESTS: Guest[] = [
     adults: 2,
     children: 2,
     roomNumber: '301',
-    roomType: 'Studio',
+    roomType: 'Presidential Suite',
     bookingSource: 'Expedia',
     currency: 'NGN',
     loyaltyPoints: 5150,
