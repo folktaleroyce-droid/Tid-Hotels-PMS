@@ -42,7 +42,7 @@ interface ReceptionProps {
 }
 
 export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
-    const { rooms, guests, reservations, updateRoomStatus, addTransaction, setGuests, setReservations, addSyncLogEntry, taxSettings, roomTypes } = hotelData;
+    const { rooms, guests, reservations, updateRoomStatus, addTransaction, checkInGuest, addSyncLogEntry, taxSettings, roomTypes } = hotelData;
     const [isCheckInModalOpen, setCheckInModalOpen] = useState(false);
     const [isCheckOutModalOpen, setCheckOutModalOpen] = useState(false);
     
@@ -190,7 +190,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
 
     const handleCheckIn = () => {
         if (!validateForm()) return;
-
+    
         const roomToCheckIn = rooms.find(r => r.id === checkInForm.roomId);
         if (!roomToCheckIn) {
             alert('A valid room is required.');
@@ -200,11 +200,10 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             alert('This room is not vacant and cannot be assigned.');
             return;
         }
-        
+    
         const discountAmount = parseFloat(checkInForm.discount) || 0;
-
-        const newGuest: Guest = {
-            id: guests.length > 0 ? Math.max(...guests.map(g => g.id)) + 1 : 1,
+    
+        const newGuest: Omit<Guest, 'id'> = {
             name: checkInForm.guestName,
             email: checkInForm.guestEmail,
             phone: checkInForm.guestPhone,
@@ -226,40 +225,31 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             loyaltyPoints: 0,
             loyaltyTier: LoyaltyTier.Bronze,
         };
-
-        setGuests(prev => [...prev, newGuest]);
-        updateRoomStatus(roomToCheckIn.id, RoomStatus.Occupied, newGuest.id);
-        
-        // Post room charge
+    
         const finalCharge = checkInForm.roomRate - discountAmount;
         let chargeDescription = 'Room Charge';
         if (discountAmount > 0) {
             const currencySymbol = checkInForm.currency === 'NGN' ? '₦' : '$';
             chargeDescription += ` (with ${currencySymbol}${discountAmount.toLocaleString()} discount)`;
         }
-        addTransaction({
-            guestId: newGuest.id,
-            description: chargeDescription,
-            amount: finalCharge,
-            date: checkInForm.arrivalDate
-        });
-
-        // Post tax if enabled
-        if (taxSettings.isEnabled && taxSettings.rate > 0) {
-            const taxAmount = finalCharge * (taxSettings.rate / 100);
-            addTransaction({
-                guestId: newGuest.id,
-                description: `Tax (${taxSettings.rate}%)`,
-                amount: taxAmount,
+    
+        // Use the new atomic action
+        checkInGuest({
+            guest: newGuest,
+            roomId: roomToCheckIn.id,
+            charge: {
+                description: chargeDescription,
+                amount: finalCharge,
                 date: checkInForm.arrivalDate
-            });
-        }
-        
-        // If this was a reservation, remove it from the list
-        if (selectedReservation) {
-            setReservations(reservations.filter(res => res.id !== selectedReservation.id));
-        }
-
+            },
+            tax: (taxSettings.isEnabled && taxSettings.rate > 0) ? {
+                description: `Tax (${taxSettings.rate}%)`,
+                amount: finalCharge * (taxSettings.rate / 100),
+                date: checkInForm.arrivalDate
+            } : undefined,
+            reservationId: selectedReservation ? selectedReservation.id : undefined
+        });
+    
         handleCloseModals();
     };
     

@@ -161,6 +161,32 @@ export interface TaxSettings {
     rate: number; // e.g., 7.5 for 7.5%
 }
 
+export type HotelAction =
+  | { type: 'CHECK_IN_GUEST'; payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number } }
+  | { type: 'ADD_ORDER'; payload: Omit<Order, 'id' | 'createdAt'> }
+  | { type: 'UPDATE_ROOM_STATUS'; payload: { roomId: number; status: RoomStatus; guestId?: number } }
+  | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
+  | { type: 'ADD_WALK_IN_TRANSACTION'; payload: Omit<WalkInTransaction, 'id' | 'date'> }
+  | { type: 'ADD_EMPLOYEE'; payload: Omit<Employee, 'id'> }
+  | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
+  | { type: 'DELETE_EMPLOYEE'; payload: number }
+  | { type: 'ADD_RESERVATION'; payload: Omit<Reservation, 'id'> }
+  | { type: 'ADD_SYNC_LOG_ENTRY'; payload: { message: string; level?: SyncLogEntry['level'] } }
+  | { type: 'UPDATE_RATE'; payload: { roomType: string; newRate: number; currency: 'NGN' | 'USD' } }
+  | { type: 'UPDATE_GUEST_DETAILS'; payload: { guestId: number; updatedGuest: Partial<Guest> } }
+  | { type: 'ADD_MAINTENANCE_REQUEST'; payload: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'> }
+  | { type: 'UPDATE_MAINTENANCE_REQUEST_STATUS'; payload: { requestId: number; status: MaintenanceStatus } }
+  | { type: 'ADD_LOYALTY_POINTS'; payload: { guestId: number; points: number; description: string } }
+  | { type: 'REDEEM_LOYALTY_POINTS'; payload: { guestId: number; pointsToRedeem: number } }
+  | { type: 'ADD_ROOM_TYPE'; payload: Omit<RoomType, 'id'> }
+  | { type: 'UPDATE_ROOM_TYPE'; payload: RoomType }
+  | { type: 'DELETE_ROOM_TYPE'; payload: number }
+  | { type: 'CLEAR_ALL_TRANSACTIONS' }
+  | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: number; status: Order['status'] } }
+  | { type: 'DELETE_TRANSACTION'; payload: number }
+  | { type: 'SET_STOP_SELL'; payload: { [roomType: string]: boolean } }
+  | { type: 'SET_TAX_SETTINGS'; payload: TaxSettings };
+
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
@@ -177,6 +203,7 @@ export interface HotelData {
   stopSell: { [roomType: string]: boolean };
   
   // Action functions
+  checkInGuest: (payload: Extract<HotelAction, { type: 'CHECK_IN_GUEST' }>['payload']) => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -190,7 +217,7 @@ export interface HotelData {
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
   addLoyaltyPoints: (guestId: number, points: number, description: string) => void;
-  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => { success: boolean, message: string };
+  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => void;
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
@@ -198,6 +225,6 @@ export interface HotelData {
   updateOrderStatus: (orderId: number, status: Order['status']) => void;
   deleteTransaction: (transactionId: number) => void;
   deleteEmployee: (employeeId: number) => void;
-  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>; // This can remain as it's UI state
-  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>; // This can also remain as it's UI state
+  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
+  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>;
 }

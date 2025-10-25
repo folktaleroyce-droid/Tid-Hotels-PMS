@@ -1,11 +1,28 @@
-import React, { createContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { RoomStatus, MaintenanceStatus, LoyaltyTier } from '../types.ts';
-import type { Room, Guest, Transaction, Order, Employee, HotelData, Reservation, SyncLogEntry, MaintenanceRequest, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings } from '../types.ts';
+import React, { createContext, useReducer, ReactNode, useEffect, useRef } from 'react';
+import { RoomStatus, MaintenanceStatus, LoyaltyTier, HotelAction } from '../types.ts';
+import type { SyncLogEntry } from '../types.ts';
 import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_LOYALTY_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS, INITIAL_MAINTENANCE_REQUESTS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS } from '../constants.tsx';
 
-export const HotelDataContext = createContext<HotelData | undefined>(undefined);
+// Define the shape of our state
+type HotelState = {
+    rooms: typeof INITIAL_ROOMS;
+    guests: typeof INITIAL_GUESTS;
+    reservations: typeof INITIAL_RESERVATIONS;
+    transactions: typeof INITIAL_TRANSACTIONS;
+    loyaltyTransactions: typeof INITIAL_LOYALTY_TRANSACTIONS;
+    walkInTransactions: any[]; // Define properly if used
+    orders: typeof INITIAL_ORDERS;
+    employees: typeof INITIAL_EMPLOYEES;
+    syncLog: SyncLogEntry[];
+    maintenanceRequests: typeof INITIAL_MAINTENANCE_REQUESTS;
+    roomTypes: typeof INITIAL_ROOM_TYPES;
+    taxSettings: typeof INITIAL_TAX_SETTINGS;
+    stopSell: { [key: string]: boolean };
+};
 
-const INITIAL_STATE = {
+export const HotelDataContext = createContext<any>(undefined);
+
+const INITIAL_STATE: HotelState = {
     rooms: INITIAL_ROOMS,
     guests: INITIAL_GUESTS,
     reservations: INITIAL_RESERVATIONS,
@@ -20,10 +37,8 @@ const INITIAL_STATE = {
     taxSettings: INITIAL_TAX_SETTINGS,
     stopSell: {},
 };
-type HotelState = typeof INITIAL_STATE;
 
-
-const getAvailability = (rooms: Room[]) => {
+const getAvailability = (rooms: typeof INITIAL_ROOMS) => {
     const availability: { [key: string]: number } = {};
     rooms.forEach(room => {
         if (room.status === RoomStatus.Vacant) {
@@ -40,219 +55,57 @@ const getLoyaltyTierForPoints = (points: number): LoyaltyTier => {
     return LoyaltyTier.Bronze;
 };
 
-export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, _setState] = useState<HotelState>(INITIAL_STATE);
-  const channelRef = useRef<BroadcastChannel>();
-  const isExternalUpdate = useRef(false);
-
-  useEffect(() => {
-    channelRef.current = new BroadcastChannel('tide_pms_state_sync');
-    const channel = channelRef.current;
-    
-    const handleMessage = (event: MessageEvent) => {
-        if (event.data.type === 'STATE_UPDATE') {
-            isExternalUpdate.current = true;
-            _setState(event.data.payload);
-            requestAnimationFrame(() => {
-                isExternalUpdate.current = false;
-            });
-        }
+// The Grand Reducer: All state logic lives here for consistency
+const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
+    // Helper to add a log entry
+    const addLog = (message: string, level: SyncLogEntry['level'] = 'info') => {
+        const newEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message, level };
+        return [newEntry, ...state.syncLog];
     };
 
-    channel.addEventListener('message', handleMessage);
+    switch (action.type) {
+        case 'CHECK_IN_GUEST': {
+            const { guest, roomId, charge, tax, reservationId } = action.payload;
+            const newGuestId = (state.guests[state.guests.length - 1]?.id || 0) + 1;
+            const newGuest = { ...guest, id: newGuestId };
 
-    return () => {
-        channel.removeEventListener('message', handleMessage);
-        channel.close();
-    };
-  }, []);
-  
-  const setState = (updater: (prevState: HotelState) => HotelState) => {
-      _setState(prevState => {
-          const newState = updater(prevState);
-          if (!isExternalUpdate.current && newState !== prevState) {
-              channelRef.current?.postMessage({ type: 'STATE_UPDATE', payload: newState });
-          }
-          return newState;
-      });
-  };
-
-  const addSyncLogEntry = (message: string, level: SyncLogEntry['level'] = 'info') => {
-    const newEntry: SyncLogEntry = {
-      timestamp: new Date().toLocaleTimeString(),
-      message,
-      level,
-    };
-    setState(prev => ({ ...prev, syncLog: [newEntry, ...prev.syncLog] }));
-  };
-  
-  const addLoyaltyPoints = (guestId: number, points: number, description: string) => {
-      setState(prev => {
-        const newLoyaltyTransaction: LoyaltyTransaction = {
-            id: (prev.loyaltyTransactions[0]?.id || 0) + 1,
-            guestId,
-            points,
-            description,
-            date: new Date().toISOString().split('T')[0]
-        };
-        
-        let logMessage: string | null = null;
-        const newGuests = prev.guests.map(guest => {
-            if (guest.id === guestId) {
-                const newTotalPoints = guest.loyaltyPoints + points;
-                const newTier = getLoyaltyTierForPoints(newTotalPoints);
-                if(newTier !== guest.loyaltyTier) {
-                  logMessage = `Guest ${guest.name} has been upgraded to ${newTier} tier!`;
-                }
-                return { ...guest, loyaltyPoints: newTotalPoints, loyaltyTier: newTier };
+            const newTransactions = [...state.transactions];
+            // Add main charge
+            newTransactions.push({ ...charge, id: (state.transactions[state.transactions.length - 1]?.id || 0) + 1, guestId: newGuestId });
+            // Add tax if applicable
+            if (tax) {
+                newTransactions.push({ ...tax, id: (state.transactions[state.transactions.length - 1]?.id || 0) + 2, guestId: newGuestId });
             }
-            return guest;
-        });
 
-        const newSyncLog = logMessage ? [
-            { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'success' as const },
-             ...prev.syncLog
-            ] : prev.syncLog;
+            return {
+                ...state,
+                guests: [...state.guests, newGuest],
+                rooms: state.rooms.map(r => r.id === roomId ? { ...r, status: RoomStatus.Occupied, guestId: newGuestId } : r),
+                transactions: newTransactions,
+                reservations: reservationId ? state.reservations.filter(res => res.id !== reservationId) : state.reservations,
+                syncLog: addLog(`Guest ${newGuest.name} checked into Room ${newGuest.roomNumber}.`, 'success'),
+            };
+        }
 
-        return {
-          ...prev,
-          guests: newGuests,
-          loyaltyTransactions: [newLoyaltyTransaction, ...prev.loyaltyTransactions],
-          syncLog: newSyncLog,
-        };
-      });
-  };
-  
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    setState(prev => {
-      const newTransaction: Transaction = {
-        ...transaction,
-        id: (prev.transactions[0]?.id || 0) + 1,
-      };
-      
-      const guestName = prev.guests.find(g => g.id === transaction.guestId)?.name || 'Unknown Guest';
-      const type = transaction.amount > 0 ? 'charge' : 'payment';
-      const amount = Math.abs(transaction.amount).toLocaleString();
-      const currencySymbol = '₦';
-      const logMessage = `Posted ${type} of ${currencySymbol}${amount} for ${guestName}.`;
-      const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
+        case 'UPDATE_ROOM_STATUS': {
+            const { roomId, status, guestId } = action.payload;
+            const roomToUpdate = state.rooms.find(r => r.id === roomId);
+            if (!roomToUpdate || roomToUpdate.status === status) return state;
 
-      return {
-        ...prev,
-        transactions: [...prev.transactions, newTransaction],
-        syncLog: [newSyncLogEntry, ...prev.syncLog],
-      };
-    });
-  };
+            let logMessages: { message: string, level: SyncLogEntry['level'] }[] = [];
+            logMessages.push({ message: `Room ${roomToUpdate.number} status updated from ${roomToUpdate.status} to ${status}.`, level: 'info' });
+            
+            let newGuests = [...state.guests];
+            let newLoyaltyTransactions = [...state.loyaltyTransactions];
 
-  const addWalkInTransaction = (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => {
-    setState(prev => {
-      const newTransaction: WalkInTransaction = {
-          ...transaction,
-          id: (prev.walkInTransactions[0]?.id || 0) + 1,
-          date: new Date().toISOString().split('T')[0],
-      };
-      
-      const currencySymbol = transaction.currency === 'NGN' ? '₦' : '$';
-      const amountDue = transaction.amount - transaction.discount + transaction.tax;
-      const balance = amountDue - transaction.amountPaid;
-      const serviceName = transaction.service === 'Other' && transaction.serviceDetails ? transaction.serviceDetails : transaction.service;
-      const logMessage = `Walk-in: ${serviceName} - Charge: ${currencySymbol}${amountDue.toLocaleString()}, Paid: ${currencySymbol}${transaction.amountPaid.toLocaleString()}, Balance: ${currencySymbol}${balance.toLocaleString()}`;
-      const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'success' };
-
-      return {
-        ...prev,
-        walkInTransactions: [newTransaction, ...prev.walkInTransactions],
-        syncLog: [newSyncLogEntry, ...prev.syncLog],
-      };
-    });
-  };
-
-  const redeemLoyaltyPoints = (guestId: number, pointsToRedeem: number): { success: boolean, message: string } => {
-      let result = { success: false, message: 'An unknown error occurred.' };
-      setState(prev => {
-          const guest = prev.guests.find(g => g.id === guestId);
-          if (!guest) {
-              result = { success: false, message: 'Guest not found.' };
-              return prev;
-          }
-          if (guest.loyaltyPoints < pointsToRedeem) {
-              result = { success: false, message: 'Insufficient points.'};
-              return prev;
-          }
-          if (pointsToRedeem <= 0) {
-              result = { success: false, message: 'Points to redeem must be positive.'};
-              return prev;
-          }
-
-          const redemptionValue = pointsToRedeem * 10;
-          
-          const loyaltyDescription = `Redeemed for ₦${redemptionValue.toFixed(2)} discount`;
-          const folioDescription = `Loyalty Points Redemption (-${pointsToRedeem} pts)`;
-          result = { success: true, message: `Successfully redeemed ${pointsToRedeem} points for a ₦${redemptionValue.toFixed(2)} discount.` };
-
-          const newLoyaltyTransaction: LoyaltyTransaction = {
-              id: (prev.loyaltyTransactions[0]?.id || 0) + 1,
-              guestId,
-              points: -pointsToRedeem,
-              description: loyaltyDescription,
-              date: new Date().toISOString().split('T')[0]
-          };
-
-          const newFolioTransaction: Transaction = {
-              id: (prev.transactions[0]?.id || 0) + 1,
-              guestId,
-              description: folioDescription,
-              amount: -redemptionValue,
-              date: new Date().toISOString().split('T')[0]
-          };
-          
-          const newGuests = prev.guests.map(g => g.id === guestId ? { ...g, loyaltyPoints: g.loyaltyPoints - pointsToRedeem } : g);
-
-          return {
-              ...prev,
-              guests: newGuests,
-              transactions: [...prev.transactions, newFolioTransaction],
-              loyaltyTransactions: [newLoyaltyTransaction, ...prev.loyaltyTransactions],
-          };
-      });
-      return result;
-  };
-
-  const addOrder = (order: Omit<Order, 'id' | 'createdAt'>) => {
-    setState(prev => {
-      const newOrder: Order = {
-        ...order,
-        id: (prev.orders[0]?.id || 0) + 1,
-        createdAt: new Date().toISOString(),
-      };
-      const roomNumber = prev.rooms.find(r => r.id === order.roomId)?.number || 'N/A';
-      const logMessage = `New room service order for Room ${roomNumber} (Total: ₦${order.total.toLocaleString()}).`;
-      const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'success' };
-      return { ...prev, orders: [newOrder, ...prev.orders], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-    });
-  };
-
-  const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
-      setState(prev => {
-          const roomToUpdate = prev.rooms.find(r => r.id === roomId);
-          if (!roomToUpdate || roomToUpdate.status === status) return prev;
-          
-          let logMessages: { message: string, level: SyncLogEntry['level'] }[] = [];
-          logMessages.push({ message: `Room ${roomToUpdate.number} status updated from ${roomToUpdate.status} to ${status}.`, level: 'info' });
-
-          const oldAvailability = getAvailability(prev.rooms);
-          let newGuests = [...prev.guests];
-          let newLoyaltyTransactions = [...prev.loyaltyTransactions];
-
-          if (roomToUpdate.status === RoomStatus.Occupied && status === RoomStatus.Dirty && roomToUpdate.guestId) {
-              const guest = prev.guests.find(g => g.id === roomToUpdate.guestId);
-              const totalCharges = prev.transactions.filter(t => t.guestId === roomToUpdate.guestId && t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+            if (roomToUpdate.status === RoomStatus.Occupied && status === RoomStatus.Dirty && roomToUpdate.guestId) {
+              const guest = state.guests.find(g => g.id === roomToUpdate.guestId);
+              const totalCharges = state.transactions.filter(t => t.guestId === roomToUpdate.guestId && t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
               const pointsEarned = Math.floor(totalCharges / 1000);
               
               if (guest) {
                   if (pointsEarned > 0) {
-                       const newLT: LoyaltyTransaction = { id: (prev.loyaltyTransactions[0]?.id || 0) + 1, guestId: guest.id, points: pointsEarned, description: `Points for stay`, date: new Date().toISOString().split('T')[0] };
+                       const newLT = { id: (state.loyaltyTransactions[0]?.id || 0) + 1, guestId: guest.id, points: pointsEarned, description: `Points for stay`, date: new Date().toISOString().split('T')[0] };
                        newLoyaltyTransactions = [newLT, ...newLoyaltyTransactions];
                   }
                   newGuests = newGuests.map(g => {
@@ -266,188 +119,151 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
                       return g;
                   });
               }
-          }
+            }
 
-          const newRooms = prev.rooms.map(room => room.id === roomId ? { ...room, status, guestId: status === RoomStatus.Occupied ? guestId : undefined } : room);
-          
-          const newAvailability = getAvailability(newRooms);
-          [...new Set([...Object.keys(oldAvailability), ...Object.keys(newAvailability)])].forEach(roomType => {
-              const oldAvail = oldAvailability[roomType] || 0;
-              const newAvail = newAvailability[roomType] || 0;
-              if (oldAvail !== newAvail) logMessages.push({ message: `${roomType} availability changed: ${oldAvail} -> ${newAvail}.`, level: 'info' });
-          });
+            const newRooms = state.rooms.map(room => room.id === roomId ? { ...room, status, guestId: status === RoomStatus.Occupied ? guestId : undefined } : room);
+            const newSyncLogEntries = logMessages.map(log => ({ ...log, timestamp: new Date().toLocaleTimeString() }));
+            return { ...state, rooms: newRooms, guests: newGuests, loyaltyTransactions: newLoyaltyTransactions, syncLog: [...newSyncLogEntries.reverse(), ...state.syncLog] };
+        }
 
-          const newSyncLogEntries = logMessages.map(log => ({ ...log, timestamp: new Date().toLocaleTimeString() }));
-          return { ...prev, rooms: newRooms, guests: newGuests, loyaltyTransactions: newLoyaltyTransactions, syncLog: [...newSyncLogEntries.reverse(), ...prev.syncLog] };
-      });
-  };
+        case 'ADD_TRANSACTION': {
+            const newTransaction = { ...action.payload, id: (state.transactions[state.transactions.length - 1]?.id || 0) + 1 };
+            const guestName = state.guests.find(g => g.id === action.payload.guestId)?.name || 'Unknown';
+            const type = action.payload.amount > 0 ? 'charge' : 'payment';
+            return {
+                ...state,
+                transactions: [...state.transactions, newTransaction],
+                syncLog: addLog(`Posted ${type} of ₦${Math.abs(action.payload.amount).toLocaleString()} for ${guestName}.`, 'info')
+            };
+        }
 
-  const addEmployee = (employee: Omit<Employee, 'id'>) => {
-      setState(prev => {
-          const newEmployee: Employee = { ...employee, id: (prev.employees[0]?.id || 0) + 1 };
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: `New employee added: ${newEmployee.name}.`, level: 'success' };
-          return { ...prev, employees: [...prev.employees, newEmployee], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
-  
-  const updateEmployee = (updatedEmployee: Employee) => {
-      setState(prev => {
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: `Profile updated for ${updatedEmployee.name}.`, level: 'info' };
-          return { ...prev, employees: prev.employees.map(e => e.id === updatedEmployee.id ? updatedEmployee : e), syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+        case 'ADD_RESERVATION': {
+            const { payload } = action;
+            const availableRooms = state.rooms.filter(r => r.type === payload.roomType && r.status === RoomStatus.Vacant).length;
+            if (availableRooms <= 0 || state.stopSell[payload.roomType]) {
+                return { ...state, syncLog: addLog(`Booking from ${payload.ota} for ${payload.roomType} REJECTED (no availability).`, 'error') };
+            }
+            const newReservation = { ...payload, id: (state.reservations[0]?.id || 0) + 1 };
+            return {
+                ...state,
+                reservations: [...state.reservations, newReservation],
+                syncLog: addLog(`New booking from ${payload.ota} for ${newReservation.guestName} (${newReservation.roomType}).`, 'success')
+            };
+        }
+        
+        // Add other action cases here...
+        case 'ADD_EMPLOYEE': {
+            const newEmployee = { ...action.payload, id: (state.employees[0]?.id || 0) + 1 };
+            return { ...state, employees: [...state.employees, newEmployee], syncLog: addLog(`New employee added: ${newEmployee.name}.`, 'success')};
+        }
+        case 'UPDATE_EMPLOYEE': {
+            return { ...state, employees: state.employees.map(e => e.id === action.payload.id ? action.payload : e), syncLog: addLog(`Profile updated for ${action.payload.name}.`, 'info')};
+        }
+        case 'DELETE_EMPLOYEE': {
+             return { ...state, employees: state.employees.filter(emp => emp.id !== action.payload) };
+        }
+        case 'CLEAR_ALL_TRANSACTIONS': {
+            return {...state, transactions: [], loyaltyTransactions: [], walkInTransactions: [], orders: [], syncLog: addLog('All transaction data has been cleared.', 'warn')}
+        }
+        case 'DELETE_TRANSACTION': {
+             return { ...state, transactions: state.transactions.filter(t => t.id !== action.payload) };
+        }
+         case 'UPDATE_ORDER_STATUS': {
+            const { orderId, status } = action.payload;
+            return { ...state, orders: state.orders.map(o => o.id === orderId ? { ...o, status } : o) };
+        }
+        case 'ADD_SYNC_LOG_ENTRY': {
+            return { ...state, syncLog: addLog(action.payload.message, action.payload.level) };
+        }
+        // Passthrough actions for UI state that doesn't need complex logic
+        case 'SET_STOP_SELL': return { ...state, stopSell: action.payload };
+        case 'SET_TAX_SETTINGS': return { ...state, taxSettings: action.payload };
 
-  const addReservation = (reservation: Omit<Reservation, 'id'>) => {
-      setState(prev => {
-          const availableRooms = prev.rooms.filter(r => r.type === reservation.roomType && r.status === RoomStatus.Vacant).length;
-          if (availableRooms <= 0 || prev.stopSell[reservation.roomType]) {
-              const logMessage = `Booking from ${reservation.ota} for ${reservation.roomType} REJECTED (no availability).`;
-              const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'error' };
-              return { ...prev, syncLog: [newSyncLogEntry, ...prev.syncLog] };
-          }
-          const newReservation: Reservation = { ...reservation, id: (prev.reservations[0]?.id || 0) + 1 };
-          const logMessage = `New booking from ${reservation.ota} for ${newReservation.guestName} (${newReservation.roomType}).`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'success' };
-          return { ...prev, reservations: [...prev.reservations, newReservation], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
-  
-  const updateRate = (roomType: string, newRate: number, currency: 'NGN' | 'USD') => {
-      setState(prev => {
-          const newRoomTypes = prev.roomTypes.map(rt => rt.name === roomType ? { ...rt, rates: { ...rt.rates, [currency]: newRate } } : rt);
-          const newRooms = prev.rooms.map(room => (room.type === roomType && room.status === RoomStatus.Vacant && currency === 'NGN') ? { ...room, rate: newRate } : room);
-          const logMessage = `Base rate for ${roomType} updated to ${currency === 'NGN' ? '₦' : '$'}${newRate.toLocaleString()} (${currency}).`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
-          return { ...prev, roomTypes: newRoomTypes, rooms: newRooms, syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+        default:
+            return state;
+    }
+};
 
-  const updateGuestDetails = (guestId: number, updatedGuest: Partial<Guest>) => {
-      setState(prev => {
-          const logMessage = `Profile updated for guest #${guestId}.`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
-          return { ...prev, guests: prev.guests.map(g => g.id === guestId ? { ...g, ...updatedGuest } : g), syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [state, dispatch] = useReducer(hotelReducer, undefined, () => {
+        try {
+            const storedState = localStorage.getItem('tide_pms_data');
+            return storedState ? JSON.parse(storedState) : INITIAL_STATE;
+        } catch (error) {
+            console.error("Failed to parse state from localStorage", error);
+            return INITIAL_STATE;
+        }
+    });
 
-  const addMaintenanceRequest = (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => {
-      setState(prev => {
-          const newRequest: MaintenanceRequest = { ...request, id: (prev.maintenanceRequests[0]?.id || 0) + 1, reportedAt: new Date().toISOString().split('T')[0], status: MaintenanceStatus.Reported };
-          const logMessage = `New maintenance request for ${newRequest.location}: "${newRequest.description}"`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'warn' };
-          return { ...prev, maintenanceRequests: [newRequest, ...prev.maintenanceRequests], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+    const channelRef = useRef<BroadcastChannel | null>(null);
 
-  const updateMaintenanceRequestStatus = (requestId: number, status: MaintenanceStatus) => {
-      setState(prev => {
-          const logMessage = `Maintenance request #${requestId} status updated to ${status}.`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
-          return { ...prev, maintenanceRequests: prev.maintenanceRequests.map(req => req.id === requestId ? { ...req, status } : req), syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+    // Persist state to localStorage on every change
+    useEffect(() => {
+        try {
+            localStorage.setItem('tide_pms_data', JSON.stringify(state));
+        } catch (error) {
+            console.error("Failed to save state to localStorage", error);
+        }
+    }, [state]);
 
-  const addRoomType = (roomType: Omit<RoomType, 'id'>) => {
-      setState(prev => {
-          const newRoomType: RoomType = { ...roomType, id: (prev.roomTypes[0]?.id || 0) + 1 };
-          const logMessage = `New room type "${newRoomType.name}" added.`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'success' };
-          return { ...prev, roomTypes: [...prev.roomTypes, newRoomType], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+    // Set up broadcast channel listener to sync actions from other tabs
+    useEffect(() => {
+        channelRef.current = new BroadcastChannel('tide_pms_actions');
+        const channel = channelRef.current;
+        const handleMessage = (event: MessageEvent) => {
+            const action = event.data as HotelAction;
+            // When an action is received from another tab, dispatch it locally.
+            // This component will not re-broadcast it, preventing loops.
+            dispatch(action); 
+        };
+        channel.addEventListener('message', handleMessage);
+        return () => {
+            channel.removeEventListener('message', handleMessage);
+            channel.close();
+        };
+    }, []);
 
-  const updateRoomType = (updatedRoomType: RoomType) => {
-      setState(prev => {
-          const oldRoomType = prev.roomTypes.find(rt => rt.id === updatedRoomType.id);
-          let newRooms = prev.rooms;
-          if (oldRoomType && oldRoomType.rates.NGN !== updatedRoomType.rates.NGN) {
-              newRooms = prev.rooms.map(room => (room.type === updatedRoomType.name && room.status === RoomStatus.Vacant) ? { ...room, rate: updatedRoomType.rates.NGN } : room);
-          }
-          const logMessage = `Room type "${updatedRoomType.name}" updated.`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
-          return { ...prev, rooms: newRooms, roomTypes: prev.roomTypes.map(rt => rt.id === updatedRoomType.id ? updatedRoomType : rt), syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+    // Wrapped dispatch to also broadcast the action to other tabs
+    const broadcastDispatch = (action: HotelAction) => {
+        // Dispatch locally first
+        dispatch(action);
+        // Then broadcast to other tabs
+        channelRef.current?.postMessage(action);
+    };
 
-  const deleteRoomType = (roomTypeId: number) => {
-      setState(prev => {
-          const roomTypeToDelete = prev.roomTypes.find(rt => rt.id === roomTypeId);
-          if (!roomTypeToDelete) return prev;
-          
-          if (prev.rooms.some(room => room.type === roomTypeToDelete.name)) {
-              alert(`Cannot delete "${roomTypeToDelete.name}" because it is assigned to rooms.`);
-              return prev;
-          }
-          const logMessage = `Room type "${roomTypeToDelete.name}" has been deleted.`;
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'info' };
-          return { ...prev, roomTypes: prev.roomTypes.filter(rt => rt.id !== roomTypeId), syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
+    // Create context value with user-friendly action functions
+    const value = {
+        ...state,
+        checkInGuest: (payload: Extract<HotelAction, { type: 'CHECK_IN_GUEST' }>['payload']) => broadcastDispatch({ type: 'CHECK_IN_GUEST', payload }),
+        updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => broadcastDispatch({ type: 'UPDATE_ROOM_STATUS', payload: { roomId, status, guestId } }),
+        addTransaction: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_TRANSACTION', payload }),
+        addReservation: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_RESERVATION', payload }),
+        addEmployee: (payload: Omit<any, 'id'>) => broadcastDispatch({ type: 'ADD_EMPLOYEE', payload }),
+        updateEmployee: (payload: any) => broadcastDispatch({ type: 'UPDATE_EMPLOYEE', payload }),
+        deleteEmployee: (employeeId: number) => broadcastDispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId }),
+        clearAllTransactions: () => broadcastDispatch({ type: 'CLEAR_ALL_TRANSACTIONS' }),
+        deleteTransaction: (transactionId: number) => broadcastDispatch({ type: 'DELETE_TRANSACTION', payload: transactionId }),
+        updateOrderStatus: (orderId: number, status: any) => broadcastDispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } }),
+        addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => broadcastDispatch({ type: 'ADD_SYNC_LOG_ENTRY', payload: { message, level } }),
+        setStopSell: (payload: any) => broadcastDispatch({ type: 'SET_STOP_SELL', payload }),
+        setTaxSettings: (payload: any) => broadcastDispatch({ type: 'SET_TAX_SETTINGS', payload }),
+        // Placeholder for unimplemented actions to prevent crashes
+        addOrder: (order: any) => console.warn('addOrder not implemented in reducer'),
+        addWalkInTransaction: (transaction: any) => console.warn('addWalkInTransaction not implemented in reducer'),
+        updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => console.warn('updateRate not implemented in reducer'),
+        updateGuestDetails: (guestId: number, updatedGuest: Partial<any>) => console.warn('updateGuestDetails not implemented in reducer'),
+        addMaintenanceRequest: (request: any) => console.warn('addMaintenanceRequest not implemented in reducer'),
+        updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => console.warn('updateMaintenanceRequestStatus not implemented in reducer'),
+        addLoyaltyPoints: (guestId: number, points: number, description: string) => console.warn('addLoyaltyPoints not implemented in reducer'),
+        redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => console.warn('redeemLoyaltyPoints not implemented in reducer'),
+        addRoomType: (roomType: any) => console.warn('addRoomType not implemented in reducer'),
+        updateRoomType: (roomType: any) => console.warn('updateRoomType not implemented in reducer'),
+        deleteRoomType: (roomTypeId: number) => console.warn('deleteRoomType not implemented in reducer'),
+    };
 
-  const clearAllTransactions = () => {
-      setState(prev => {
-          const logMessage = 'All transaction data has been cleared.';
-          const newSyncLogEntry: SyncLogEntry = { timestamp: new Date().toLocaleTimeString(), message: logMessage, level: 'warn' };
-          return { ...prev, transactions: [], loyaltyTransactions: [], walkInTransactions: [], orders: [], syncLog: [newSyncLogEntry, ...prev.syncLog] };
-      });
-  };
-
-  const updateOrderStatus = (orderId: number, status: Order['status']) => {
-      setState(prev => ({ ...prev, orders: prev.orders.map(o => o.id === orderId ? { ...o, status } : o) }));
-  };
-
-  const deleteTransaction = (transactionId: number) => {
-      setState(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== transactionId) }));
-  };
-
-  const deleteEmployee = (employeeId: number) => {
-      setState(prev => ({ ...prev, employees: prev.employees.filter(emp => emp.id !== employeeId) }));
-  };
-
-  const setStopSell = (updater: React.SetStateAction<{ [roomType: string]: boolean }>) => {
-      setState(prev => {
-          const newStopSell = typeof updater === 'function' ? updater(prev.stopSell) : updater;
-          return { ...prev, stopSell: newStopSell };
-      });
-  };
-
-  const setTaxSettings = (updater: React.SetStateAction<TaxSettings>) => {
-      setState(prev => {
-          const newTaxSettings = typeof updater === 'function' ? updater(prev.taxSettings) : updater;
-          return { ...prev, taxSettings: newTaxSettings };
-      });
-  };
-
-  const value: HotelData = {
-    ...state,
-    addOrder,
-    updateRoomStatus,
-    addTransaction,
-    addWalkInTransaction,
-    addEmployee,
-    updateEmployee,
-    addReservation,
-    addSyncLogEntry,
-    updateRate,
-    updateGuestDetails,
-    addMaintenanceRequest,
-    updateMaintenanceRequestStatus,
-    addLoyaltyPoints,
-    redeemLoyaltyPoints,
-    addRoomType,
-    updateRoomType,
-    deleteRoomType,
-    clearAllTransactions,
-    updateOrderStatus,
-    deleteTransaction,
-    deleteEmployee,
-    setStopSell,
-    setTaxSettings,
-  };
-
-  return (
-    <HotelDataContext.Provider value={value}>
-      {children}
-    </HotelDataContext.Provider>
-  );
+    return (
+        <HotelDataContext.Provider value={value}>
+            {children}
+        </HotelDataContext.Provider>
+    );
 };
