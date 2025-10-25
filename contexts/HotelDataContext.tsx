@@ -1,5 +1,5 @@
 import React, { createContext, useReducer, ReactNode, useEffect, useRef } from 'react';
-import { RoomStatus, MaintenanceStatus, LoyaltyTier, HotelAction } from '../types.ts';
+import { RoomStatus, MaintenanceStatus, LoyaltyTier, HotelAction, Guest, TaxSettings } from '../types.ts';
 import type { SyncLogEntry, WalkInTransaction } from '../types.ts';
 import { INITIAL_ROOMS, INITIAL_GUESTS, INITIAL_TRANSACTIONS, INITIAL_LOYALTY_TRANSACTIONS, INITIAL_ORDERS, INITIAL_EMPLOYEES, INITIAL_RESERVATIONS, INITIAL_MAINTENANCE_REQUESTS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS } from '../constants.tsx';
 
@@ -376,7 +376,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         addReservation: (payload: Extract<HotelAction, { type: 'ADD_RESERVATION' }>['payload']) => broadcastDispatch({ type: 'ADD_RESERVATION', payload }),
         addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => broadcastDispatch({ type: 'ADD_SYNC_LOG_ENTRY', payload: { message, level } }),
         updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => broadcastDispatch({ type: 'UPDATE_RATE', payload: { roomType, newRate, currency } }),
-        updateGuestDetails: (guestId: number, updatedGuest: Partial<any>) => broadcastDispatch({ type: 'UPDATE_GUEST_DETAILS', payload: { guestId, updatedGuest } }),
+        updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => broadcastDispatch({ type: 'UPDATE_GUEST_DETAILS', payload: { guestId, updatedGuest } }),
         addMaintenanceRequest: (payload: Extract<HotelAction, { type: 'ADD_MAINTENANCE_REQUEST' }>['payload']) => broadcastDispatch({ type: 'ADD_MAINTENANCE_REQUEST', payload }),
         updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => broadcastDispatch({ type: 'UPDATE_MAINTENANCE_REQUEST_STATUS', payload: { requestId, status } }),
         addLoyaltyPoints: (guestId: number, points: number, description: string) => broadcastDispatch({ type: 'ADD_LOYALTY_POINTS', payload: { guestId, points, description } }),
@@ -398,8 +398,18 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         updateOrderStatus: (orderId: number, status: any) => broadcastDispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } }),
         deleteTransaction: (transactionId: number) => broadcastDispatch({ type: 'DELETE_TRANSACTION', payload: transactionId }),
         deleteEmployee: (employeeId: number) => broadcastDispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId }),
-        setStopSell: (payload: any) => broadcastDispatch({ type: 'SET_STOP_SELL', payload }),
-        setTaxSettings: (payload: any) => broadcastDispatch({ type: 'SET_TAX_SETTINGS', payload }),
+        setStopSell: (valueOrFn: React.SetStateAction<{ [roomType: string]: boolean }>) => {
+            const newPayload = typeof valueOrFn === 'function' 
+                ? (valueOrFn as (prevState: { [roomType: string]: boolean }) => { [roomType: string]: boolean })(state.stopSell) 
+                : valueOrFn;
+            broadcastDispatch({ type: 'SET_STOP_SELL', payload: newPayload });
+        },
+        setTaxSettings: (valueOrFn: React.SetStateAction<TaxSettings>) => {
+            const newPayload = typeof valueOrFn === 'function' 
+                ? (valueOrFn as (prevState: TaxSettings) => TaxSettings)(state.taxSettings) 
+                : valueOrFn;
+            broadcastDispatch({ type: 'SET_TAX_SETTINGS', payload: newPayload });
+        },
     };
 
     return (
