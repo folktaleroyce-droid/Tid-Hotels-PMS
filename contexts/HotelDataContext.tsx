@@ -311,6 +311,14 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
       addSyncLogEntry(`Room type "${roomTypeToDelete.name}" has been deleted.`, 'info');
   };
 
+  const clearAllTransactions = () => {
+    setTransactions([]);
+    setLoyaltyTransactions([]);
+    setWalkInTransactions([]);
+    setOrders([]);
+    addSyncLogEntry('All transaction data has been cleared.', 'warn');
+  };
+
 
   const value: HotelData = {
     rooms,
@@ -355,6 +363,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     addRoomType,
     updateRoomType,
     deleteRoomType,
+    clearAllTransactions,
   };
 
   return (

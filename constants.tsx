@@ -129,33 +129,11 @@ export const INITIAL_GUESTS: Guest[] = [
   },
 ];
 
-export const INITIAL_TRANSACTIONS: Transaction[] = [
-    { id: 1, guestId: 1, description: 'Room Charge', amount: 150000, date: yesterday.toISOString().split('T')[0] },
-    { id: 2, guestId: 1, description: 'Room Service', amount: 12000, date: yesterday.toISOString().split('T')[0] },
-    { id: 3, guestId: 2, description: 'Room Charge', amount: 187500, date: twoDaysAgo.toISOString().split('T')[0] },
-    { id: 4, guestId: 2, description: 'Room Charge', amount: 187500, date: yesterday.toISOString().split('T')[0] },
-    { id: 5, guestId: 3, description: 'Room Charge', amount: 300000, date: threeDaysAgo.toISOString().split('T')[0] },
-    { id: 6, guestId: 3, description: 'Payment - Credit Card', amount: -200000, date: threeDaysAgo.toISOString().split('T')[0] },
-    { id: 7, guestId: 3, description: 'Room Charge', amount: 300000, date: twoDaysAgo.toISOString().split('T')[0] },
-    { id: 8, guestId: 3, description: 'Room Charge', amount: 300000, date: yesterday.toISOString().split('T')[0] },
-    { id: 9, guestId: 1, description: 'Payment - Cash', amount: -150000, date: today.toISOString().split('T')[0] },
-    { id: 10, guestId: 2, description: 'Restaurant', amount: 20000, date: yesterday.toISOString().split('T')[0] },
-];
+export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
-export const INITIAL_LOYALTY_TRANSACTIONS: LoyaltyTransaction[] = [
-    { id: 1, guestId: 1, points: 150, description: 'Points for stay in Room 102', date: '2023-10-15' },
-    { id: 2, guestId: 1, points: 12, description: 'Room Service', date: '2023-10-15' },
-    { id: 3, guestId: 1, points: 500, description: 'Birthday Bonus', date: '2024-05-15' },
-    { id: 4, guestId: 3, points: 5000, description: 'Initial Sign-up Bonus', date: '2023-01-01' },
-    { id: 5, guestId: 3, points: -200, description: 'Redeemed for ₦2,000.00 discount', date: yesterday.toISOString().split('T')[0] },
-    { id: 6, guestId: 3, points: 350, description: 'Points for stay in Room 301', date: threeDaysAgo.toISOString().split('T')[0] },
-    { id: 7, guestId: 2, points: 480, description: 'Points from previous stays', date: '2023-11-20' },
-];
+export const INITIAL_LOYALTY_TRANSACTIONS: LoyaltyTransaction[] = [];
 
-export const INITIAL_ORDERS: Order[] = [
-    { id: 1, roomId: 2, items: [{ name: 'Jollof Rice', price: 8000, quantity: 1 }, { name: 'Water', price: 1000, quantity: 2 }], total: 10000, status: 'Delivered', createdAt: yesterday.toISOString() },
-    { id: 2, roomId: 5, items: [{ name: 'Cheeseburger', price: 12000, quantity: 1 }], total: 12000, status: 'Pending', createdAt: today.toISOString() },
-];
+export const INITIAL_ORDERS: Order[] = [];
 
 export const INITIAL_EMPLOYEES: Employee[] = [
     { id: 1, name: 'John Doe', department: 'Management', jobTitle: 'General Manager', salary: 12000000, hireDate: '2022-01-15', email: 'j.doe@tidehotels.com', phone: '08012345678', emergencyContactName: 'Mary Doe', emergencyContactPhone: '08087654321', profilePicture: '' },

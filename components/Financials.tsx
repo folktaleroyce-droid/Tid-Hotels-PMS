@@ -30,12 +30,13 @@ thirtyDaysAgo.setDate(new Date().getDate() - 30);
 const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
 export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
-    const { transactions, guests, walkInTransactions, addSyncLogEntry } = hotelData;
+    const { transactions, guests, walkInTransactions, addSyncLogEntry, clearAllTransactions } = hotelData;
     const [dateRange, setDateRange] = useState({ start: thirtyDaysAgoStr, end: today });
 
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [recipientEmail, setRecipientEmail] = useState('');
     const [emailError, setEmailError] = useState('');
+    const [isClearModalOpen, setIsClearModalOpen] = useState(false);
     
     const getGuestName = (guestId: number) => {
         return guests.find(g => g.id === guestId)?.name || 'N/A';
@@ -261,6 +262,10 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
                              <ExcelIcon/>
                              <span>Download Full History</span>
                          </Button>
+                         <Button onClick={() => setIsClearModalOpen(true)} variant="secondary" className="flex items-center space-x-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300">
+                            <TrashIcon />
+                            <span>Clear All Data</span>
+                        </Button>
                     </div>
                 </div>
 
@@ -268,7 +273,7 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
                     <div className="text-center mb-8 hidden print:block">
                         <h1 className="text-2xl font-bold">Tidé Hotels PMS</h1>
                         <h2 className="text-xl">Financial Summary</h2>
-                        <p className="text-sm">For period: {dateRange.start} to {dateRange.end}</p>
+                        <p className="text-sm">For period: {dateRange.start} to ${dateRange.end}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -358,6 +363,37 @@ export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
                     <Button onClick={handleSendEmail}>Send Email</Button>
                 </div>
             </Modal>
+            
+            <Modal isOpen={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} title="Confirm Clear All Data">
+                <div className="space-y-4">
+                    <div className="p-3 rounded-md bg-red-100 dark:bg-red-900/50 border border-red-500/50 flex items-start space-x-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="text-sm">
+                            <p className="font-semibold text-red-800 dark:text-red-200">Warning: This is a destructive action and cannot be undone.</p>
+                        </div>
+                    </div>
+                    <p>
+                        Are you sure you want to delete ALL transaction data? This includes:
+                    </p>
+                    <ul className="list-disc list-inside ml-4 text-sm text-slate-600 dark:text-slate-400">
+                        <li>In-house guest charges and payments</li>
+                        <li>Walk-in service transactions</li>
+                        <li>Restaurant orders</li>
+                        <li>Loyalty point history</li>
+                    </ul>
+                    <p>
+                        This will reset the financial records to a clean slate.
+                    </p>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                    <Button variant="secondary" onClick={() => setIsClearModalOpen(false)}>Cancel</Button>
+                    <Button onClick={() => { clearAllTransactions(); setIsClearModalOpen(false); }} className="bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white">
+                        Yes, Clear All Data
+                    </Button>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -372,4 +408,8 @@ const ExcelIcon = () => (
 
 const EmailIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+);
+
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
 );

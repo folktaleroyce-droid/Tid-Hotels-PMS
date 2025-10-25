@@ -204,4 +204,5 @@ export interface HotelData {
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
+  clearAllTransactions: () => void;
 }
