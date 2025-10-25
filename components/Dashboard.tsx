@@ -4,7 +4,7 @@ import type { HotelData, Transaction, Guest } from '../types.ts';
 import { RoomStatus, PaymentStatus } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ROOM_STATUS_THEME } from '../constants.tsx';
+import { ROOM_STATUS_THEME, LOYALTY_TIER_THEME } from '../constants.tsx';
 import { PaymentStatusBadge } from './common/PaymentStatusBadge.tsx';
 
 interface DashboardProps {
@@ -69,10 +69,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
     
     const availableRooms = rooms.filter(r => r.status === RoomStatus.Vacant).length;
     
-    const todaysRevenue = transactions
+    const todaysRevenue = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(transactions
         .filter(t => t.date === todayStr && t.amount > 0)
-        .reduce((sum, t) => sum + t.amount, 0)
-        .toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        .reduce((sum, t) => sum + t.amount, 0));
     
     // Chart Data Preparation
     const roomStatusData = Object.values(RoomStatus).map(status => ({
@@ -124,13 +123,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                         <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
                             <XAxis dataKey="date" tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} />
-                            <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} tickFormatter={(value) => `$${value}`} />
+                            <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} tickFormatter={(value) => `₦${Number(value) / 1000}k`} />
                             <Tooltip
                                 contentStyle={{
                                     backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
                                     borderColor: isDarkMode ? '#374151' : '#E5E7EB'
                                 }}
-                                formatter={(value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                                formatter={(value: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(value)}
                             />
                             <Legend />
                             <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} name="Revenue" />
@@ -145,10 +144,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                     <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
                         {guestsWithBalance.length > 0 ? guestsWithBalance.map(({ guest, room, balance, status }) => (
                             <div key={guest.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
-                                <div>
-                                    <p className="font-semibold">{guest.name} <span className="text-sm text-slate-500">(Room {room.number})</span></p>
+                                <div className="space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                        <p className="font-semibold">{guest.name}</p>
+                                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${LOYALTY_TIER_THEME[guest.loyaltyTier].bg} ${LOYALTY_TIER_THEME[guest.loyaltyTier].text}`}>
+                                            {guest.loyaltyTier}
+                                        </span>
+                                        <span className="text-sm text-slate-500">(Room {room.number})</span>
+                                    </div>
                                     <p className={`text-sm font-bold ${status === PaymentStatus.Owing ? 'text-red-500' : 'text-yellow-600'}`}>
-                                      Balance: ${balance.toFixed(2)}
+                                      Balance: ₦{balance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                 </div>
                                 <PaymentStatusBadge status={status} showLabel />

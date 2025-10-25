@@ -345,7 +345,7 @@ export const ChannelManager: React.FC<ChannelManagerProps> = ({ hotelData }) => 
                                         <td className="p-3 font-semibold">{type}</td>
                                         <td className="p-3">{available} / {total}</td>
                                         <td className="p-3">
-                                            ${rate.toFixed(2)}{' '}
+                                            ₦{rate.toLocaleString()}{' '}
                                             <button onClick={() => openRateModal(type, rate)} className="text-indigo-500 hover:underline text-sm ml-2">(edit)</button>
                                         </td>
                                         <td className="p-3 text-center">
@@ -399,7 +399,7 @@ export const ChannelManager: React.FC<ChannelManagerProps> = ({ hotelData }) => 
              <Modal isOpen={isRateModalOpen} onClose={() => setRateModalOpen(false)} title={`Update Rate for ${rateForm.roomType}`}>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">New Base Rate ($)</label>
+                        <label className="block text-sm font-medium mb-1">New Base Rate (₦)</label>
                         <input 
                             type="number" 
                             value={rateForm.rate} 

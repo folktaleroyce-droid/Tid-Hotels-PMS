@@ -1,4 +1,3 @@
-// FIX: Imported Dispatch and SetStateAction from React to resolve namespace errors.
 import type { Dispatch, SetStateAction } from 'react';
 
 export enum RoomStatus {
@@ -15,6 +14,13 @@ export enum PaymentStatus {
   Owing = 'Owing',
 }
 
+export enum LoyaltyTier {
+    Bronze = 'Bronze',
+    Silver = 'Silver',
+    Gold = 'Gold',
+    Platinum = 'Platinum',
+}
+
 export interface Room {
   id: number;
   number: string;
@@ -22,6 +28,14 @@ export interface Room {
   rate: number;
   status: RoomStatus;
   guestId?: number;
+}
+
+export interface RoomType {
+  id: number;
+  name: string;
+  baseRate: number;
+  currency: 'NGN' | 'USD';
+  capacity: number;
 }
 
 export interface Guest {
@@ -43,6 +57,8 @@ export interface Guest {
   roomType: string;
   bookingSource: string; // Formerly 'ota'
   specialRequests?: string;
+  loyaltyPoints: number;
+  loyaltyTier: LoyaltyTier;
 }
 
 export interface Reservation {
@@ -64,6 +80,27 @@ export interface Transaction {
   date: string;
 }
 
+export interface LoyaltyTransaction {
+    id: number;
+    guestId: number;
+    points: number; // positive for earned, negative for redeemed
+    description: string;
+    date: string;
+}
+
+export interface WalkInTransaction {
+  id: number;
+  service: string;
+  serviceDetails?: string; // For 'Other'
+  amount: number; // Gross Amount / Subtotal
+  discount: number;
+  tax: number;
+  amountPaid: number;
+  paymentMethod: 'Cash' | 'Card' | 'Bank Transfer';
+  currency: 'NGN' | 'USD';
+  date: string;
+}
+
 export interface Order {
   id: number;
   roomId: number;
@@ -76,9 +113,15 @@ export interface Order {
 export interface Employee {
   id: number;
   name: string;
-  position: string;
+  department: string;
+  jobTitle: string;
   salary: number;
   hireDate: string;
+  email: string;
+  phone: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  profilePicture?: string; // base64 string
 }
 
 export interface SyncLogEntry {
@@ -109,33 +152,52 @@ export interface MaintenanceRequest {
   priority: MaintenancePriority;
 }
 
+export interface TaxSettings {
+    isEnabled: boolean;
+    rate: number; // e.g., 7.5 for 7.5%
+}
+
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
   reservations: Reservation[];
   transactions: Transaction[];
+  loyaltyTransactions: LoyaltyTransaction[];
+  walkInTransactions: WalkInTransaction[];
   orders: Order[];
   employees: Employee[];
   syncLog: SyncLogEntry[];
   maintenanceRequests: MaintenanceRequest[];
+  roomTypes: RoomType[];
+  taxSettings: TaxSettings;
   stopSell: { [roomType: string]: boolean };
-  // FIX: Replaced React.Dispatch and React.SetStateAction with imported types.
   setRooms: Dispatch<SetStateAction<Room[]>>;
   setGuests: Dispatch<SetStateAction<Guest[]>>;
   setReservations: Dispatch<SetStateAction<Reservation[]>>;
   setTransactions: Dispatch<SetStateAction<Transaction[]>>;
+  setLoyaltyTransactions: Dispatch<SetStateAction<LoyaltyTransaction[]>>;
+  setWalkInTransactions: Dispatch<SetStateAction<WalkInTransaction[]>>;
   setOrders: Dispatch<SetStateAction<Order[]>>;
   setEmployees: Dispatch<SetStateAction<Employee[]>>;
   setMaintenanceRequests: Dispatch<SetStateAction<MaintenanceRequest[]>>;
+  setRoomTypes: Dispatch<SetStateAction<RoomType[]>>;
+  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>;
   setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addWalkInTransaction: (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => void;
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  updateEmployee: (employee: Employee) => void;
   addReservation: (reservation: Omit<Reservation, 'id'>) => void;
   addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => void;
   updateRate: (roomType: string, newRate: number) => void;
   updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => void;
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
+  addLoyaltyPoints: (guestId: number, points: number, description: string) => void;
+  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => { success: boolean, message: string };
+  addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
+  updateRoomType: (roomType: RoomType) => void;
+  deleteRoomType: (roomTypeId: number) => void;
 }

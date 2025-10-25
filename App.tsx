@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-// FIX: Added file extensions to imports to resolve module errors.
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar.tsx';
 import { Header } from './components/Header.tsx';
 import { Dashboard } from './components/Dashboard.tsx';
@@ -14,13 +13,28 @@ import { useTheme } from './contexts/ThemeContext.tsx';
 import { ChannelManager } from './components/ChannelManager.tsx';
 import { Maintenance } from './components/Maintenance.tsx';
 import { Financials } from './components/Financials.tsx';
+import { LoyaltyProgram } from './components/LoyaltyProgram.tsx';
+import { WelcomeScreen } from './components/WelcomeScreen.tsx';
+import { WalkIn } from './components/WalkIn.tsx';
+import { RoomTypes } from './components/RoomTypes.tsx';
+import { Settings } from './components/Settings.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'room-types' | 'settings';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const hotelData = useHotelData();
   const { theme } = useTheme();
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWelcomeScreen(false);
+    }, 3000); // Display welcome screen for 3 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
 
   const renderView = () => {
     switch (currentView) {
@@ -32,8 +46,12 @@ function App() {
         return <Housekeeping hotelData={hotelData} />;
       case 'maintenance':
         return <Maintenance hotelData={hotelData} />;
+      case 'room-types':
+        return <RoomTypes />;
       case 'restaurant':
         return <Restaurant hotelData={hotelData} />;
+      case 'walk-in':
+        return <WalkIn />;
       case 'kitchen':
         return <Kitchen hotelData={hotelData} />;
       case 'accounts':
@@ -44,10 +62,18 @@ function App() {
         return <PeopleAndCulture hotelData={hotelData} />;
       case 'channel-manager':
         return <ChannelManager hotelData={hotelData} />;
+      case 'loyalty':
+        return <LoyaltyProgram hotelData={hotelData} />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Dashboard hotelData={hotelData} />;
     }
   };
+  
+  if (showWelcomeScreen) {
+    return <WelcomeScreen />;
+  }
 
   return (
     <div className={`flex h-screen bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-200 ${theme}`}>

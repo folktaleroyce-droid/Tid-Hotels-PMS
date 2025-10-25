@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 // FIX: Added file extension to App import.
 import App from './App.tsx';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
+import { HotelDataProvider } from './contexts/HotelDataContext.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,7 +14,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ThemeProvider>
-      <App />
+      <HotelDataProvider>
+        <App />
+      </HotelDataProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

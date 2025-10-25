@@ -84,7 +84,7 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
                         <div className="space-y-2 max-h-96 overflow-y-auto">
                             {MENU_ITEMS.map(item => (
                                 <div key={item.name} className="flex justify-between items-center p-2 rounded bg-slate-200 dark:bg-slate-700">
-                                    <span>{item.name} (${item.price})</span>
+                                    <span>{item.name} (₦{item.price.toLocaleString()})</span>
                                     <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => handleAddToOrder(item)}>+</Button>
                                 </div>
                             ))}
@@ -94,11 +94,11 @@ export const Restaurant: React.FC<RestaurantProps> = ({ hotelData }) => {
                         <h4 className="font-bold mb-2">Current Order</h4>
                         <div className="space-y-1 max-h-80 overflow-y-auto">
                             {currentOrder.map(item => (
-                                <p key={item.name}>{item.quantity}x {item.name} - ${(item.price * item.quantity).toFixed(2)}</p>
+                                <p key={item.name}>{item.quantity}x {item.name} - ₦{(item.price * item.quantity).toLocaleString()}</p>
                             ))}
                         </div>
                         <hr className="my-2 border-slate-300 dark:border-slate-600"/>
-                        <p className="font-bold text-lg">Total: ${orderTotal.toFixed(2)}</p>
+                        <p className="font-bold text-lg">Total: ₦{orderTotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         <div className="flex justify-end space-x-2 pt-4">
                             <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
                             <Button onClick={handlePlaceOrder} disabled={currentOrder.length === 0}>Place Order</Button>
