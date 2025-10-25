@@ -30,7 +30,7 @@ const getPaymentStatus = (balance: number, rate: number): PaymentStatus => {
 };
 
 export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
-  const { rooms, guests, transactions, setTransactions, updateGuestDetails, addTransaction, redeemLoyaltyPoints, addSyncLogEntry, taxSettings } = hotelData;
+  const { rooms, guests, transactions, updateGuestDetails, addTransaction, redeemLoyaltyPoints, addSyncLogEntry, taxSettings, deleteTransaction } = hotelData;
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [isFolioModalOpen, setIsFolioModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -177,7 +177,7 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
   
   const handleDeleteTransaction = (transactionId: number) => {
     if (window.confirm("Are you sure you want to delete this transaction? This action cannot be undone.")) {
-        setTransactions(transactions.filter(t => t.id !== transactionId));
+        deleteTransaction(transactionId);
     }
   };
 

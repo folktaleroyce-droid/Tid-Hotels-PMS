@@ -8,13 +8,9 @@ interface KitchenProps {
 }
 
 export const Kitchen: React.FC<KitchenProps> = ({ hotelData }) => {
-    const { orders, setOrders, rooms } = hotelData;
+    const { orders, updateOrderStatus, rooms } = hotelData;
     
     const activeOrders = orders.filter(o => o.status === 'Pending' || o.status === 'Preparing');
-
-    const updateOrderStatus = (orderId: number, status: Order['status']) => {
-        setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? { ...o, status } : o));
-    };
 
     const getRoomNumber = (roomId: number) => {
         return rooms.find(r => r.id === roomId)?.number || 'N/A';

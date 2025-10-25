@@ -175,18 +175,8 @@ export interface HotelData {
   roomTypes: RoomType[];
   taxSettings: TaxSettings;
   stopSell: { [roomType: string]: boolean };
-  setRooms: Dispatch<SetStateAction<Room[]>>;
-  setGuests: Dispatch<SetStateAction<Guest[]>>;
-  setReservations: Dispatch<SetStateAction<Reservation[]>>;
-  setTransactions: Dispatch<SetStateAction<Transaction[]>>;
-  setLoyaltyTransactions: Dispatch<SetStateAction<LoyaltyTransaction[]>>;
-  setWalkInTransactions: Dispatch<SetStateAction<WalkInTransaction[]>>;
-  setOrders: Dispatch<SetStateAction<Order[]>>;
-  setEmployees: Dispatch<SetStateAction<Employee[]>>;
-  setMaintenanceRequests: Dispatch<SetStateAction<MaintenanceRequest[]>>;
-  setRoomTypes: Dispatch<SetStateAction<RoomType[]>>;
-  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>;
-  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
+  
+  // Action functions
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -205,4 +195,9 @@ export interface HotelData {
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
   clearAllTransactions: () => void;
+  updateOrderStatus: (orderId: number, status: Order['status']) => void;
+  deleteTransaction: (transactionId: number) => void;
+  deleteEmployee: (employeeId: number) => void;
+  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>; // This can remain as it's UI state
+  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>; // This can also remain as it's UI state
 }

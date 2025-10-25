@@ -27,7 +27,7 @@ const UserCircleIcon = () => (
 
 
 export const PeopleAndCulture: React.FC = () => {
-    const { employees, addEmployee, updateEmployee, setEmployees } = useHotelData();
+    const { employees, addEmployee, updateEmployee, deleteEmployee } = useHotelData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentEmployee, setCurrentEmployee] = useState<Omit<Employee, 'id'> | Employee>(initialEmployeeState);
@@ -101,7 +101,7 @@ export const PeopleAndCulture: React.FC = () => {
     
     const handleDeleteEmployee = (employeeId: number) => {
       if(window.confirm("Are you sure you want to remove this employee?")) {
-        setEmployees(employees.filter(emp => emp.id !== employeeId));
+        deleteEmployee(employeeId);
       }
     };
 
