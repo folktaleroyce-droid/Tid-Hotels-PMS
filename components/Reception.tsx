@@ -334,12 +334,12 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                                             </span>
                                         </div>
                                     )}
-                                    <div className="mt-3 flex space-x-2">
+                                    <div className="mt-3 flex flex-col space-y-2">
                                         {room.status === RoomStatus.Vacant && <Button className="w-full text-xs py-1" onClick={() => handleOpenCheckIn(room)}>Walk-in</Button>}
                                         {room.status === RoomStatus.Occupied && (
                                             <>
-                                                <Button variant="secondary" className="flex-1 text-xs py-1" onClick={() => handleOpenCheckOut(room)}>Check-out</Button>
-                                                <Button variant="secondary" className="flex-1 text-xs py-1" onClick={() => handleOpenMoveModal(room)}>Move</Button>
+                                                <Button variant="secondary" className="w-full text-xs py-1" onClick={() => handleOpenCheckOut(room)}>Check-out</Button>
+                                                <Button variant="secondary" className="w-full text-xs py-1" onClick={() => handleOpenMoveModal(room)}>Move</Button>
                                             </>
                                         )}
                                     </div>
