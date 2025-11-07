@@ -190,18 +190,67 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
                 reportedAt: new Date().toISOString().split('T')[0],
                 status: MaintenanceStatus.Reported,
             };
+
+            let updatedRooms = state.rooms;
+            const logMessages: { message: string, level: SyncLogEntry['level'] }[] = [];
+            logMessages.push({ message: `New maintenance request for ${newRequest.location}: ${newRequest.description}`, level: 'warn' });
+
+            if (newRequest.roomId) {
+                const room = state.rooms.find(r => r.id === newRequest.roomId);
+                if (room) {
+                    updatedRooms = state.rooms.map(r => 
+                        r.id === newRequest.roomId ? { ...r, status: RoomStatus.OutOfOrder } : r
+                    );
+                    logMessages.push({ message: `Room ${room.number} status set to Out of Order due to maintenance.`, level: 'warn' });
+                }
+            }
+            
+            const newSyncLogEntries = logMessages.map(log => ({ ...log, timestamp: new Date().toLocaleTimeString() }));
+
             return {
                 ...state,
+                rooms: updatedRooms,
                 maintenanceRequests: [newRequest, ...state.maintenanceRequests],
-                syncLog: addLog(`New maintenance request for ${newRequest.location}: ${newRequest.description}`, 'warn')
+                syncLog: [...newSyncLogEntries.reverse(), ...state.syncLog],
             };
         }
 
         case 'UPDATE_MAINTENANCE_REQUEST_STATUS': {
             const { requestId, status } = action.payload;
+            
+            const request = state.maintenanceRequests.find(req => req.id === requestId);
+            
+            let updatedRooms = state.rooms;
+            const logMessages: { message: string, level: SyncLogEntry['level'] }[] = [];
+
+            if (request && request.roomId && status === MaintenanceStatus.Completed) {
+                const otherActiveRequests = state.maintenanceRequests.some(
+                    req => req.roomId === request.roomId && req.id !== requestId && (req.status === MaintenanceStatus.Reported || req.status === MaintenanceStatus.InProgress)
+                );
+
+                if (!otherActiveRequests) {
+                    const room = state.rooms.find(r => r.id === request.roomId);
+                    if (room) {
+                        updatedRooms = state.rooms.map(r => 
+                            r.id === request.roomId ? { ...r, status: RoomStatus.Dirty } : r
+                        );
+                        logMessages.push({ message: `Maintenance for Room ${room.number} completed. Room is now Dirty and ready for housekeeping.`, level: 'success' });
+                    }
+                } else {
+                    const room = state.rooms.find(r => r.id === request.roomId);
+                    if (room) {
+                        logMessages.push({ message: `A maintenance task for Room ${room.number} was completed, but other tasks remain. Room status is still Out of Order.`, level: 'info' });
+                    }
+                }
+            }
+
+            const newSyncLogEntries = logMessages.map(log => ({ ...log, timestamp: new Date().toLocaleTimeString() }));
+
             return {
                 ...state,
+                rooms: updatedRooms,
                 maintenanceRequests: state.maintenanceRequests.map(req => req.id === requestId ? { ...req, status } : req),
+                syncLog: [...newSyncLogEntries.reverse(), ...state.syncLog],
             };
         }
 

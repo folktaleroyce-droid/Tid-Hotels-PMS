@@ -60,11 +60,14 @@ export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
   const dirtyRooms = rooms.filter(r => r.status === RoomStatusEnum.Dirty);
   const cleaningRooms = rooms.filter(r => r.status === RoomStatusEnum.Cleaning);
   const occupiedRooms = rooms.filter(r => r.status === RoomStatusEnum.Occupied);
+  const vacantRooms = rooms.filter(r => r.status === RoomStatusEnum.Vacant);
+  const outOfOrderRooms = rooms.filter(r => r.status === RoomStatusEnum.OutOfOrder);
 
-  const RoomCard: React.FC<{ room: Room }> = ({ room }) => (
+
+  const RoomCard: React.FC<{ room: Room; disabled?: boolean }> = ({ room, disabled = false }) => (
     <div
-      onClick={() => handleRoomSelect(room)}
-      className={`p-3 rounded-lg shadow-sm cursor-pointer border-l-4 transition-transform transform hover:scale-105 ${ROOM_STATUS_THEME[room.status].light} ${ROOM_STATUS_THEME[room.status].dark}`}
+      onClick={!disabled ? () => handleRoomSelect(room) : undefined}
+      className={`p-3 rounded-lg shadow-sm border-l-4 transition-transform transform ${!disabled ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-80'} ${ROOM_STATUS_THEME[room.status].light} ${ROOM_STATUS_THEME[room.status].dark}`}
       style={{ borderLeftColor: ROOM_STATUS_THEME[room.status].fill }}
     >
       <div className="flex justify-between items-center">
@@ -77,31 +80,42 @@ export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <Card title="Priority: Upcoming Arrivals">
-            <div className="space-y-2 max-h-64 overflow-y-auto p-1">
+            <div className="space-y-2 max-h-96 overflow-y-auto p-1">
               {priorityRooms.length > 0 ? priorityRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">All arrival rooms are ready.</p>}
             </div>
           </Card>
+          
+          <Card title="To Do: Dirty Rooms">
+            <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+              {dirtyRooms.length > 0 ? dirtyRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms require cleaning.</p>}
+            </div>
+          </Card>
+
           <Card title="In Progress: Cleaning">
-             <div className="space-y-2 max-h-64 overflow-y-auto p-1">
+             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
               {cleaningRooms.length > 0 ? cleaningRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are being cleaned.</p>}
             </div>
           </Card>
-        </div>
-        
-        <Card title="To Do: Dirty Rooms">
-          <div className="space-y-2 max-h-[36rem] lg:max-h-[calc(80vh)] overflow-y-auto p-1">
-            {dirtyRooms.length > 0 ? dirtyRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms require cleaning.</p>}
-          </div>
-        </Card>
 
-        <Card title="Stay-overs: Occupied Rooms">
-           <div className="space-y-2 max-h-[36rem] lg:max-h-[calc(80vh)] overflow-y-auto p-1">
-            {occupiedRooms.length > 0 ? occupiedRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are occupied.</p>}
-          </div>
-        </Card>
+          <Card title="Stay-overs: Occupied Rooms">
+             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+              {occupiedRooms.length > 0 ? occupiedRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are occupied.</p>}
+            </div>
+          </Card>
+
+          <Card title="Ready: Vacant">
+             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+              {vacantRooms.length > 0 ? vacantRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No vacant rooms.</p>}
+            </div>
+          </Card>
+
+          <Card title="Unavailable: Out of Order">
+             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+              {outOfOrderRooms.length > 0 ? outOfOrderRooms.map(room => <RoomCard key={room.id} room={room} disabled={true} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are out of order.</p>}
+            </div>
+          </Card>
       </div>
       
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Update Status for Room ${selectedRoom?.number}`}>
