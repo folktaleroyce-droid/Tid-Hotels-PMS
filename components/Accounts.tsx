@@ -210,7 +210,7 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
         }
     };
 
-    const handleRedeemPoints = () => {
+    const handleRedeemPoints = async () => {
         if (!selectedGuest) return;
         const points = parseInt(redeemForm.points, 10);
         if (isNaN(points) || points <= 0) {
@@ -222,7 +222,7 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
             return;
         }
 
-        const result = redeemLoyaltyPoints(selectedGuest.id, points);
+        const result = await redeemLoyaltyPoints(selectedGuest.id, points);
         if (result.success) {
             addSyncLogEntry(result.message, 'success');
             setIsRedeemModalOpen(false);

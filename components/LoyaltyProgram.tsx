@@ -68,7 +68,7 @@ export const LoyaltyProgram: React.FC<LoyaltyProgramProps> = ({ hotelData }) => 
         setAdjustModalOpen(false);
     };
 
-    const handleAdjustPoints = () => {
+    const handleAdjustPoints = async () => {
         if (!selectedGuest) return;
 
         const points = parseInt(adjustmentForm.points, 10);
@@ -95,7 +95,7 @@ export const LoyaltyProgram: React.FC<LoyaltyProgramProps> = ({ hotelData }) => 
                 addLoyaltyPoints(selectedGuest.id, points, `Manual Adjustment: ${adjustmentForm.description}`);
                 addSyncLogEntry(`Manually added ${points} points to ${selectedGuest.name}.`, 'info');
             } else { // redeem
-                const result = redeemLoyaltyPoints(selectedGuest.id, points);
+                const result = await redeemLoyaltyPoints(selectedGuest.id, points);
                 if (result.success) {
                    addSyncLogEntry(`Redeemed ${points} points from ${selectedGuest.name}'s account.`, 'info');
                 }

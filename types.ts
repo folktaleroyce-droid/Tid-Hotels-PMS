@@ -237,7 +237,8 @@ export interface HotelData {
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
   addLoyaltyPoints: (guestId: number, points: number, description: string) => void;
-  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => { success: boolean, message: string };
+  // FIX: redeemLoyaltyPoints should return a promise as it's an async operation.
+  redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => Promise<{ success: boolean, message: string }>;
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
