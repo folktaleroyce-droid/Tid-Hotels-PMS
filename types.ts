@@ -21,6 +21,23 @@ export enum LoyaltyTier {
     Platinum = 'Platinum',
 }
 
+export enum UserRole {
+    Manager = 'Manager',
+    FrontDesk = 'Front Desk',
+    Housekeeping = 'Housekeeping',
+    Accounts = 'Accounts',
+    Restaurant = 'Restaurant',
+    Maintenance = 'Maintenance',
+}
+
+export interface Staff {
+    id: number;
+    name: string;
+    email: string;
+    password: string; // In a real app, this would be a hash
+    role: UserRole;
+}
+
 export interface Room {
   id: number;
   number: string;
@@ -181,10 +198,13 @@ export type HotelAction =
   | { type: 'ADD_ROOM_TYPE'; payload: Omit<RoomType, 'id'> }
   | { type: 'UPDATE_ROOM_TYPE'; payload: RoomType }
   | { type: 'DELETE_ROOM_TYPE'; payload: number }
-  | { type: 'CLEAR_ALL_TRANSACTIONS' }
+  | { type: 'ADD_ROOM'; payload: { number: string; type: string } }
+  | { type: 'DELETE_ROOM'; payload: number }
+  | { type: 'CLEAR_ALL_DATA' }
   | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: number; status: Order['status'] } }
   | { type: 'DELETE_TRANSACTION'; payload: number }
   | { type: 'SET_STOP_SELL'; payload: { [roomType: string]: boolean } }
+  | { type: 'MOVE_GUEST'; payload: { guestId: number; oldRoomId: number; newRoomId: number } }
   | { type: 'SET_TAX_SETTINGS'; payload: TaxSettings };
 
 export interface HotelData {
@@ -221,10 +241,13 @@ export interface HotelData {
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
-  clearAllTransactions: () => void;
+  addRoom: (room: { number: string; type: string }) => void;
+  deleteRoom: (roomId: number) => void;
+  clearAllData: () => void;
   updateOrderStatus: (orderId: number, status: Order['status']) => void;
   deleteTransaction: (transactionId: number) => void;
   deleteEmployee: (employeeId: number) => void;
+  moveGuest: (payload: { guestId: number; oldRoomId: number; newRoomId: number }) => void;
   setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
   setTaxSettings: Dispatch<SetStateAction<TaxSettings>>;
 }

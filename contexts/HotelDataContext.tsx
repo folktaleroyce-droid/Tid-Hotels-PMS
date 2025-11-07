@@ -247,6 +247,35 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
                 transactions: [...state.transactions, newTransaction],
             };
         }
+        
+        case 'MOVE_GUEST': {
+            const { guestId, oldRoomId, newRoomId } = action.payload;
+            const guest = state.guests.find(g => g.id === guestId);
+            const oldRoom = state.rooms.find(r => r.id === oldRoomId);
+            const newRoom = state.rooms.find(r => r.id === newRoomId);
+
+            if (!guest || !oldRoom || !newRoom) return state; // Safety check
+
+            // Update guest's room number
+            const updatedGuests = state.guests.map(g => 
+                g.id === guestId ? { ...g, roomNumber: newRoom.number } : g
+            );
+
+            // Update room statuses
+            const updatedRooms = state.rooms.map(r => {
+                if (r.id === oldRoomId) return { ...r, status: RoomStatus.Dirty, guestId: undefined };
+                if (r.id === newRoomId) return { ...r, status: RoomStatus.Occupied, guestId: guestId };
+                return r;
+            });
+            
+            return {
+                ...state,
+                guests: updatedGuests,
+                rooms: updatedRooms,
+                syncLog: addLog(`Moved guest ${guest.name} from Room ${oldRoom.number} to Room ${newRoom.number}.`, 'success'),
+            };
+        }
+
 
         case 'ADD_ROOM_TYPE': {
             const newRoomType = { ...action.payload, id: (state.roomTypes[state.roomTypes.length - 1]?.id || 0) + 1 };
@@ -264,11 +293,48 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
             };
         }
         case 'DELETE_ROOM_TYPE': {
+            const roomTypeToDelete = state.roomTypes.find(rt => rt.id === action.payload);
+            if (!roomTypeToDelete) return state;
+
+            const roomsToDeleteCount = state.rooms.filter(r => r.type === roomTypeToDelete.name).length;
+            const updatedRooms = state.rooms.filter(r => r.type !== roomTypeToDelete.name);
+
             return {
                 ...state,
                 roomTypes: state.roomTypes.filter(rt => rt.id !== action.payload),
+                rooms: updatedRooms,
+                syncLog: addLog(`Deleted room type '${roomTypeToDelete.name}' and its ${roomsToDeleteCount} associated room(s).`, 'error'),
             };
         }
+        
+        case 'ADD_ROOM': {
+            const { number, type } = action.payload;
+            const roomTypeDetails = state.roomTypes.find(rt => rt.name === type);
+            if (!roomTypeDetails) return state; // Should not happen with UI dropdown
+
+            const newRoom = {
+                id: (state.rooms[state.rooms.length - 1]?.id || 0) + 1,
+                number,
+                type,
+                rate: roomTypeDetails.rates.NGN, // Defaulting to NGN rate
+                status: RoomStatus.Vacant,
+            };
+            return {
+                ...state,
+                rooms: [...state.rooms, newRoom].sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true })),
+                syncLog: addLog(`Added new room: ${number} (${type}).`, 'success'),
+            };
+        }
+
+        case 'DELETE_ROOM': {
+            const roomToDelete = state.rooms.find(r => r.id === action.payload);
+            return {
+                ...state,
+                rooms: state.rooms.filter(r => r.id !== action.payload),
+                syncLog: addLog(`Deleted room: ${roomToDelete?.number}.`, 'warn'),
+            };
+        }
+
 
         case 'ADD_RESERVATION': {
             const { payload } = action;
@@ -292,10 +358,28 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
             return { ...state, employees: state.employees.map(e => e.id === action.payload.id ? action.payload : e), syncLog: addLog(`Profile updated for ${action.payload.name}.`, 'info')};
         }
         case 'DELETE_EMPLOYEE': {
-             return { ...state, employees: state.employees.filter(emp => emp.id !== action.payload) };
+            const employee = state.employees.find(e => e.id === action.payload);
+            return { 
+                ...state, 
+                employees: state.employees.filter(emp => emp.id !== action.payload), 
+                syncLog: addLog(`Removed employee: ${employee?.name || `ID ${action.payload}`}.`, 'warn') 
+            };
         }
-        case 'CLEAR_ALL_TRANSACTIONS': {
-            return {...state, transactions: [], loyaltyTransactions: [], walkInTransactions: [], orders: [], syncLog: addLog('All transaction data has been cleared.', 'warn')}
+        case 'CLEAR_ALL_DATA': {
+            return {
+                ...state,
+                rooms: [],
+                guests: [],
+                reservations: [],
+                transactions: [],
+                loyaltyTransactions: [],
+                walkInTransactions: [],
+                orders: [],
+                employees: [],
+                maintenanceRequests: [],
+                roomTypes: [],
+                syncLog: addLog('All application data has been cleared.', 'error'),
+            };
         }
         case 'DELETE_TRANSACTION': {
              return { ...state, transactions: state.transactions.filter(t => t.id !== action.payload) };
@@ -394,10 +478,13 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         addRoomType: (payload: Extract<HotelAction, { type: 'ADD_ROOM_TYPE' }>['payload']) => broadcastDispatch({ type: 'ADD_ROOM_TYPE', payload }),
         updateRoomType: (payload: Extract<HotelAction, { type: 'UPDATE_ROOM_TYPE' }>['payload']) => broadcastDispatch({ type: 'UPDATE_ROOM_TYPE', payload }),
         deleteRoomType: (roomTypeId: number) => broadcastDispatch({ type: 'DELETE_ROOM_TYPE', payload: roomTypeId }),
-        clearAllTransactions: () => broadcastDispatch({ type: 'CLEAR_ALL_TRANSACTIONS' }),
+        addRoom: (payload: Extract<HotelAction, { type: 'ADD_ROOM' }>['payload']) => broadcastDispatch({ type: 'ADD_ROOM', payload }),
+        deleteRoom: (roomId: number) => broadcastDispatch({ type: 'DELETE_ROOM', payload: roomId }),
+        clearAllData: () => broadcastDispatch({ type: 'CLEAR_ALL_DATA' }),
         updateOrderStatus: (orderId: number, status: any) => broadcastDispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, status } }),
         deleteTransaction: (transactionId: number) => broadcastDispatch({ type: 'DELETE_TRANSACTION', payload: transactionId }),
         deleteEmployee: (employeeId: number) => broadcastDispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId }),
+        moveGuest: (payload: Extract<HotelAction, { type: 'MOVE_GUEST' }>['payload']) => broadcastDispatch({ type: 'MOVE_GUEST', payload }),
         setStopSell: (valueOrFn: React.SetStateAction<{ [roomType: string]: boolean }>) => {
             const newPayload = typeof valueOrFn === 'function' 
                 ? (valueOrFn as (prevState: { [roomType: string]: boolean }) => { [roomType: string]: boolean })(state.stopSell) 

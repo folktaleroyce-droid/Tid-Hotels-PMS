@@ -42,9 +42,10 @@ interface ReceptionProps {
 }
 
 export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
-    const { rooms, guests, reservations, updateRoomStatus, addTransaction, checkInGuest, addSyncLogEntry, taxSettings, roomTypes } = hotelData;
+    const { rooms, guests, reservations, updateRoomStatus, addTransaction, checkInGuest, addSyncLogEntry, taxSettings, roomTypes, moveGuest } = hotelData;
     const [isCheckInModalOpen, setCheckInModalOpen] = useState(false);
     const [isCheckOutModalOpen, setCheckOutModalOpen] = useState(false);
+    const [isMoveModalOpen, setMoveModalOpen] = useState(false);
     
     // Moved date calculations inside the component to ensure they are always current.
     const today = new Date().toISOString().split('T')[0];
@@ -62,6 +63,10 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
 
     const [guestForCheckOut, setGuestForCheckOut] = useState<Guest | null>(null);
     const [checkOutBalance, setCheckOutBalance] = useState(0);
+
+    const [guestToMove, setGuestToMove] = useState<{ guest: Guest, room: Room } | null>(null);
+    const [compatibleRooms, setCompatibleRooms] = useState<Room[]>([]);
+    const [selectedNewRoomId, setSelectedNewRoomId] = useState<string>('');
 
     // Effect to update room rate when currency or selected room changes
     useEffect(() => {
@@ -140,15 +145,33 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         setCheckOutModalOpen(true);
     };
     
+    const handleOpenMoveModal = (room: Room) => {
+        if (!room.guestId) return;
+        const guest = hotelData.guests.find(g => g.id === room.guestId);
+        if (!guest) return;
+
+        const compatible = hotelData.rooms.filter(r => r.type === room.type && r.status === RoomStatus.Vacant);
+
+        setGuestToMove({ guest, room });
+        setCompatibleRooms(compatible);
+        setSelectedNewRoomId(''); // Reset selection
+        setMoveModalOpen(true);
+    };
+
+
     const handleCloseModals = () => {
         setCheckInModalOpen(false);
         setCheckOutModalOpen(false);
+        setMoveModalOpen(false);
         setSelectedRoomForAction(null);
         setSelectedReservation(null);
         setCheckInForm(INITIAL_FORM_STATE);
         setErrors({});
         setGuestForCheckOut(null);
         setCheckOutBalance(0);
+        setGuestToMove(null);
+        setCompatibleRooms([]);
+        setSelectedNewRoomId('');
     };
 
     const validateForm = (): boolean => {
@@ -260,6 +283,20 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
         }
         handleCloseModals(); // Close modal and clean up state
     };
+
+    const handleConfirmMove = () => {
+        if (!guestToMove || !selectedNewRoomId) {
+            alert("Please select a new room.");
+            return;
+        }
+        const newRoomId = parseInt(selectedNewRoomId, 10);
+        moveGuest({
+            guestId: guestToMove.guest.id,
+            oldRoomId: guestToMove.room.id,
+            newRoomId: newRoomId,
+        });
+        handleCloseModals();
+    };
     
     const finalNightlyCharge = (checkInForm.roomRate || 0) - (parseFloat(checkInForm.discount) || 0);
 
@@ -297,9 +334,14 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                                             </span>
                                         </div>
                                     )}
-                                    <div className="mt-3 flex flex-col space-y-2">
+                                    <div className="mt-3 flex space-x-2">
                                         {room.status === RoomStatus.Vacant && <Button className="w-full text-xs py-1" onClick={() => handleOpenCheckIn(room)}>Walk-in</Button>}
-                                        {room.status === RoomStatus.Occupied && <Button variant="secondary" className="w-full text-xs py-1" onClick={() => handleOpenCheckOut(room)}>Check-out</Button>}
+                                        {room.status === RoomStatus.Occupied && (
+                                            <>
+                                                <Button variant="secondary" className="flex-1 text-xs py-1" onClick={() => handleOpenCheckOut(room)}>Check-out</Button>
+                                                <Button variant="secondary" className="flex-1 text-xs py-1" onClick={() => handleOpenMoveModal(room)}>Move</Button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -439,6 +481,48 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                         {checkOutBalance > 0.01 ? 'Check-out with Balance' : 'Confirm Check-out'}
                     </Button>
                 </div>
+            </Modal>
+
+            <Modal 
+                isOpen={isMoveModalOpen} 
+                onClose={handleCloseModals} 
+                title={`Move Guest: ${guestToMove?.guest.name || ''}`}
+            >
+                {guestToMove && (
+                    <div className="space-y-4">
+                        <p>
+                            Moving guest from <strong>Room {guestToMove.room.number}</strong> ({guestToMove.room.type}).
+                        </p>
+                        <div>
+                            <label htmlFor="new-room-select" className="block text-sm font-medium mb-1">
+                                Select New Available Room:
+                            </label>
+                            <select
+                                id="new-room-select"
+                                value={selectedNewRoomId}
+                                onChange={(e) => setSelectedNewRoomId(e.target.value)}
+                                className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
+                            >
+                                <option value="" disabled>Choose a room...</option>
+                                {compatibleRooms.length > 0 ? (
+                                    compatibleRooms.map(room => (
+                                        <option key={room.id} value={room.id}>
+                                            Room {room.number}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <option value="" disabled>No compatible rooms available</option>
+                                )}
+                            </select>
+                        </div>
+                        <div className="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                            <Button variant="secondary" onClick={handleCloseModals}>Cancel</Button>
+                            <Button onClick={handleConfirmMove} disabled={!selectedNewRoomId}>
+                                Confirm Move
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

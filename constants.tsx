@@ -1,5 +1,5 @@
 import React from 'react';
-import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings } from './types.ts';
+import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings, Staff, UserRole } from './types.ts';
 
 const today = new Date();
 const tomorrow = new Date(today);
@@ -40,126 +40,23 @@ export const INITIAL_TAX_SETTINGS: TaxSettings = {
     rate: 7.5,
 };
 
-export const INITIAL_ROOM_TYPES: RoomType[] = [
-  { id: 1, name: 'Standard', rates: { NGN: 150000, USD: 100 }, capacity: 2 },
-  { id: 2, name: 'Double', rates: { NGN: 187000, USD: 125 }, capacity: 2 },
-  { id: 3, name: 'Double Executive', rates: { NGN: 210000, USD: 140 }, capacity: 2 },
-  { id: 4, name: 'Studio', rates: { NGN: 300000, USD: 200 }, capacity: 3 },
-  { id: 5, name: 'Studio Executive', rates: { NGN: 375000, USD: 250 }, capacity: 3 },
-  { id: 6, name: 'Junior Suite', rates: { NGN: 397500, USD: 265 }, capacity: 4 },
-  { id: 7, name: 'Presidential Suite', rates: { NGN: 450000, USD: 300 }, capacity: 4 },
+export const INITIAL_STAFF: Staff[] = [
+    { id: 1, name: 'Faith', email: 'faith@tide.com', password: 'F@i7h#92X!', role: UserRole.FrontDesk },
+    { id: 2, name: 'Goodness', email: 'goodness@tide.com', password: 'G00d*N3ss$4', role: UserRole.Housekeeping },
+    { id: 3, name: 'Benjamin', email: 'benjamin@tide.com', password: 'B3nJ&9m_84', role: UserRole.Maintenance },
+    { id: 4, name: 'Sandra', email: 'sandra@tide.com', password: 'S@ndR4!51%', role: UserRole.Restaurant },
+    { id: 5, name: 'David', email: 'david@tide.com', password: 'D@v1D#73Q', role: UserRole.Accounts },
+    { id: 6, name: 'Ifeanyi', email: 'ifeanyi@tide.com', password: '1F3@yN!88*', role: UserRole.FrontDesk },
+    { id: 7, name: 'Margret', email: 'margret@tide.com', password: 'M@rG7eT_42', role: UserRole.Housekeeping },
+    { id: 8, name: 'Miriam', email: 'miriam@tide.com', password: 'M1r!@m#97W', role: UserRole.Restaurant },
+    { id: 9, name: 'Francis', email: 'francis@tide.com', password: 'Fr@nC1$62!', role: UserRole.Manager },
 ];
 
-export const INITIAL_ROOMS: Room[] = [
-  // Standard
-  { id: 1, number: '101', type: 'Standard', rate: 150000, status: RoomStatus.Dirty },
-  { id: 2, number: '103', type: 'Standard', rate: 150000, status: RoomStatus.Cleaning },
-  { id: 3, number: '104', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 4, number: '210', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 5, number: '212', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 6, number: '214', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 7, number: '310', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 8, number: '312', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  { id: 9, number: '314', type: 'Standard', rate: 150000, status: RoomStatus.Vacant },
-  // Double
-  { id: 10, number: '102', type: 'Double', rate: 187000, status: RoomStatus.Occupied, guestId: 1 },
-  { id: 11, number: '209', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 12, number: '211', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 13, number: '213', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 14, number: '309', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 15, number: '311', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 16, number: '313', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  { id: 17, number: '315', type: 'Double', rate: 187000, status: RoomStatus.Vacant },
-  // Double Executive
-  { id: 18, number: '207', type: 'Double Executive', rate: 210000, status: RoomStatus.OutOfOrder },
-  { id: 19, number: '208', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
-  { id: 20, number: '307', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
-  { id: 21, number: '308', type: 'Double Executive', rate: 210000, status: RoomStatus.Vacant },
-  // Studio
-  { id: 22, number: '202', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
-  { id: 23, number: '204', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
-  { id: 24, number: '302', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
-  { id: 25, number: '304', type: 'Studio', rate: 300000, status: RoomStatus.Vacant },
-  // Studio Executive
-  { id: 26, number: '206', type: 'Studio Executive', rate: 375000, status: RoomStatus.Vacant },
-  { id: 27, number: '306', type: 'Studio Executive', rate: 375000, status: RoomStatus.Vacant },
-  // Junior Suite
-  { id: 28, number: '203', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
-  { id: 29, number: '205', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
-  { id: 30, number: '303', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
-  { id: 31, number: '305', type: 'Junior Suite', rate: 397500, status: RoomStatus.Vacant },
-  // Presidential Suite
-  { id: 32, number: '201', type: 'Presidential Suite', rate: 450000, status: RoomStatus.Occupied, guestId: 2 },
-  { id: 33, number: '301', type: 'Presidential Suite', rate: 450000, status: RoomStatus.Occupied, guestId: 3 },
-];
+export const INITIAL_ROOM_TYPES: RoomType[] = [];
 
-export const INITIAL_GUESTS: Guest[] = [
-  { 
-    id: 1, 
-    name: 'Alice Johnson', 
-    email: 'alice@example.com', 
-    phone: '123-456-7890', 
-    birthdate: '1990-05-15',
-    idType: 'Driver’s License',
-    idNumber: 'A12345678', 
-    nationality: 'USA',
-    address: '123 Wonder Lane, New York, NY',
-    arrivalDate: yesterday.toISOString().split('T')[0],
-    departureDate: today.toISOString().split('T')[0],
-    adults: 2,
-    children: 0,
-    roomNumber: '102',
-    roomType: 'Double',
-    bookingSource: 'Direct',
-    currency: 'NGN',
-    specialRequests: 'Prefers high floor.',
-    loyaltyPoints: 1620,
-    loyaltyTier: LoyaltyTier.Gold,
-  },
-  { 
-    id: 2, 
-    name: 'Bob Smith', 
-    email: 'bob@example.com', 
-    phone: '098-765-4321', 
-    birthdate: '1985-11-20',
-    idType: 'International Passport',
-    idNumber: 'B87654321', 
-    nationality: 'Canada',
-    address: '456 Maple Street, Toronto, ON',
-    arrivalDate: twoDaysAgo.toISOString().split('T')[0],
-    departureDate: tomorrow.toISOString().split('T')[0],
-    adults: 1,
-    children: 1,
-    roomNumber: '201',
-    roomType: 'Presidential Suite',
-    bookingSource: 'Booking.com',
-    currency: 'NGN',
-    specialRequests: 'Requires a baby cot.',
-    loyaltyPoints: 480,
-    loyaltyTier: LoyaltyTier.Bronze,
-  },
-  {
-    id: 3, 
-    name: 'Charles Williams', 
-    email: 'charles@example.com', 
-    phone: '555-555-5555',
-    birthdate: '1978-01-30',
-    idType: 'NIN',
-    idNumber: '12345678901',
-    nationality: 'Nigeria',
-    address: '789 Palm Avenue, Lagos, NG',
-    arrivalDate: threeDaysAgo.toISOString().split('T')[0],
-    departureDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    adults: 2,
-    children: 2,
-    roomNumber: '301',
-    roomType: 'Presidential Suite',
-    bookingSource: 'Expedia',
-    currency: 'NGN',
-    loyaltyPoints: 5150,
-    loyaltyTier: LoyaltyTier.Platinum,
-  },
-];
+export const INITIAL_ROOMS: Room[] = [];
+
+export const INITIAL_GUESTS: Guest[] = [];
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
@@ -167,22 +64,11 @@ export const INITIAL_LOYALTY_TRANSACTIONS: LoyaltyTransaction[] = [];
 
 export const INITIAL_ORDERS: Order[] = [];
 
-export const INITIAL_EMPLOYEES: Employee[] = [
-    { id: 1, name: 'John Doe', department: 'Management', jobTitle: 'General Manager', salary: 12000000, hireDate: '2022-01-15', email: 'j.doe@tidehotels.com', phone: '08012345678', emergencyContactName: 'Mary Doe', emergencyContactPhone: '08087654321', profilePicture: '' },
-    { id: 2, name: 'Jane Smith', department: 'Front Office', jobTitle: 'Front Desk Officer', salary: 4800000, hireDate: '2022-03-20', email: 'j.smith@tidehotels.com', phone: '08011223344', emergencyContactName: 'Peter Smith', emergencyContactPhone: '08044332211', profilePicture: '' },
-    { id: 3, name: 'Sam Wilson', department: 'Kitchen', jobTitle: 'Head Chef', salary: 8400000, hireDate: '2021-11-10', email: 's.wilson@tidehotels.com', phone: '09098765432', emergencyContactName: 'Grace Wilson', emergencyContactPhone: '09023456789', profilePicture: '' },
-];
+export const INITIAL_EMPLOYEES: Employee[] = [];
 
-export const INITIAL_RESERVATIONS: Reservation[] = [
-    { id: 1, guestName: 'Emily Clark', guestEmail: 'emily@test.com', guestPhone: '111-222-3333', checkInDate: today.toISOString().split('T')[0], checkOutDate: tomorrow.toISOString().split('T')[0], roomType: 'Standard', ota: 'Booking.com' },
-    { id: 2, guestName: 'Michael Brown', guestEmail: 'mb@test.com', guestPhone: '444-555-6666', checkInDate: tomorrow.toISOString().split('T')[0], checkOutDate: new Date(new Date().setDate(today.getDate() + 3)).toISOString().split('T')[0], roomType: 'Double', ota: 'Direct' },
-];
+export const INITIAL_RESERVATIONS: Reservation[] = [];
 
-export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [
-    { id: 1, roomId: 3, location: 'Room 103', description: 'Leaky faucet in bathroom.', reportedAt: yesterday.toISOString().split('T')[0], status: MaintenanceStatus.InProgress, priority: MaintenancePriority.Medium },
-    { id: 2, location: 'Lobby', description: 'Main entrance door is sticking.', reportedAt: today.toISOString().split('T')[0], status: MaintenanceStatus.Reported, priority: MaintenancePriority.High },
-    { id: 3, roomId: 7, location: 'Room 301', description: 'AC not cooling properly.', reportedAt: threeDaysAgo.toISOString().split('T')[0], status: MaintenanceStatus.Completed, priority: MaintenancePriority.High },
-];
+export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [];
 
 // FIX: Added MENU_ITEMS constant to be used by the Restaurant component.
 export const MENU_ITEMS: { name: string; price: number }[] = [
