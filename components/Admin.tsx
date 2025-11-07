@@ -40,7 +40,7 @@ export const Admin: React.FC = () => {
     // State for Room Modal
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
     const [newRoomForm, setNewRoomForm] = useState({ number: '', type: '' });
-    const [roomError, setRoomError] = useState('');
+    const [roomErrors, setRoomErrors] = useState({ number: '', type: '' });
     const [searchTerm, setSearchTerm] = useState('');
     
     // State from Settings
@@ -100,9 +100,19 @@ export const Admin: React.FC = () => {
     
     const validateTypeForm = () => {
         const newErrors = { name: '', rateNGN: '', rateUSD: '', capacity: '' };
-        if (!currentRoomType.name.trim()) {
+        const trimmedName = currentRoomType.name.trim();
+
+        if (!trimmedName) {
             newErrors.name = 'Room type name is required.';
+        } else if (
+            roomTypes.some(rt => 
+                rt.name.toLowerCase() === trimmedName.toLowerCase() && 
+                (!('id' in currentRoomType) || rt.id !== (currentRoomType as RoomType).id)
+            )
+        ) {
+            newErrors.name = 'A room type with this name already exists.';
         }
+        
         const rates = (currentRoomType as RoomType).rates;
         if (!rates.NGN || rates.NGN <= 0) {
             newErrors.rateNGN = 'Rate (NGN) must be a positive number.';
@@ -114,13 +124,22 @@ export const Admin: React.FC = () => {
             newErrors.capacity = 'Capacity must be a positive number.';
         }
         setTypeErrors(newErrors);
-        return !newErrors.name && !newErrors.rateNGN && !newErrors.rateUSD && !newErrors.capacity;
+        return Object.values(newErrors).every(error => !error);
     };
 
     const handleTypeSubmit = () => {
         if (!validateTypeForm()) return;
-        if (modalMode === 'add') addRoomType(currentRoomType as Omit<RoomType, 'id'>);
-        else updateRoomType(currentRoomType as RoomType);
+        
+        const processedRoomType = {
+            ...currentRoomType,
+            name: currentRoomType.name.trim(),
+        };
+
+        if (modalMode === 'add') {
+            addRoomType(processedRoomType as Omit<RoomType, 'id'>);
+        } else {
+            updateRoomType(processedRoomType as RoomType);
+        }
         handleCloseTypeModal();
     };
     
@@ -137,34 +156,43 @@ export const Admin: React.FC = () => {
     // --- Room Modal Logic ---
     const openAddRoomModal = () => {
         setNewRoomForm({ number: '', type: roomTypes[0]?.name || '' });
-        setRoomError('');
+        setRoomErrors({ number: '', type: '' });
         setIsRoomModalOpen(true);
     };
     const handleCloseRoomModal = () => setIsRoomModalOpen(false);
+
     const handleRoomFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setNewRoomForm(prev => ({ ...prev, [name]: value }));
     };
-    const handleAddRoomSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setRoomError('');
+
+    const validateRoomForm = () => {
+        const newErrors = { number: '', type: '' };
         const trimmedNumber = newRoomForm.number.trim();
 
         if (!trimmedNumber) {
-            setRoomError('Room number is required.');
-            return;
+            newErrors.number = 'Room number is required.';
+        } else if (rooms.some(r => r.number.toLowerCase() === trimmedNumber.toLowerCase())) {
+            newErrors.number = 'This room number already exists.';
         }
-        if (rooms.some(r => r.number.toLowerCase() === trimmedNumber.toLowerCase())) {
-            setRoomError('This room number already exists.');
-            return;
-        }
+        
         if (!newRoomForm.type) {
-            setRoomError('Please select a room type.');
-            return;
+            newErrors.type = 'Please select a room type.';
         }
+
+        setRoomErrors(newErrors);
+        return Object.values(newErrors).every(error => !error);
+    };
+
+    const handleAddRoomSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateRoomForm()) return;
+        
+        const trimmedNumber = newRoomForm.number.trim();
         addRoom({ number: trimmedNumber, type: newRoomForm.type });
         handleCloseRoomModal();
     };
+
     const handleDeleteRoom = (roomId: number) => {
         if (window.confirm("Are you sure you want to delete this room?")) deleteRoom(roomId);
     };
@@ -323,14 +351,15 @@ export const Admin: React.FC = () => {
                     <div>
                         <label htmlFor="room-number" className="block text-sm font-medium mb-1">Room Number</label>
                         <input type="text" id="room-number" name="number" value={newRoomForm.number} onChange={handleRoomFormChange} placeholder="e.g., 101, 205B, PH1" className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
+                        {roomErrors.number && <p className="text-red-500 text-xs mt-1">{roomErrors.number}</p>}
                     </div>
                     <div>
                         <label htmlFor="room-type" className="block text-sm font-medium mb-1">Room Type</label>
                         <select id="room-type" name="type" value={newRoomForm.type} onChange={handleRoomFormChange} className="w-full p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600">
                             {roomTypes.map(rt => <option key={rt.id} value={rt.name}>{rt.name}</option>)}
                         </select>
+                        {roomErrors.type && <p className="text-red-500 text-xs mt-1">{roomErrors.type}</p>}
                     </div>
-                    {roomError && <p className="text-red-500 text-sm">{roomError}</p>}
                     <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
                         <Button variant="secondary" type="button" onClick={handleCloseRoomModal}>Cancel</Button>
                         <Button type="submit">Add Room</Button>

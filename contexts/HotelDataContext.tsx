@@ -327,7 +327,16 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
 
 
         case 'ADD_ROOM_TYPE': {
-            const newRoomType = { ...action.payload, id: (state.roomTypes[state.roomTypes.length - 1]?.id || 0) + 1 };
+            const trimmedName = action.payload.name.trim();
+
+            if (state.roomTypes.some(rt => rt.name.toLowerCase() === trimmedName.toLowerCase())) {
+                return {
+                    ...state,
+                    syncLog: addLog(`Failed to add room type: Name '${trimmedName}' already exists.`, 'error'),
+                };
+            }
+
+            const newRoomType = { ...action.payload, name: trimmedName, id: (state.roomTypes[state.roomTypes.length - 1]?.id || 0) + 1 };
             return {
                 ...state,
                 roomTypes: [...state.roomTypes, newRoomType],
