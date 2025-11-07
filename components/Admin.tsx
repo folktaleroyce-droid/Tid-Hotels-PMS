@@ -148,10 +148,21 @@ export const Admin: React.FC = () => {
     const handleAddRoomSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setRoomError('');
-        if (!newRoomForm.number.trim()) return setRoomError('Room number is required.');
-        if (rooms.some(r => r.number.toLowerCase() === newRoomForm.number.trim().toLowerCase())) return setRoomError('This room number already exists.');
-        if (!newRoomForm.type) return setRoomError('Please select a room type.');
-        addRoom(newRoomForm);
+        const trimmedNumber = newRoomForm.number.trim();
+
+        if (!trimmedNumber) {
+            setRoomError('Room number is required.');
+            return;
+        }
+        if (rooms.some(r => r.number.toLowerCase() === trimmedNumber.toLowerCase())) {
+            setRoomError('This room number already exists.');
+            return;
+        }
+        if (!newRoomForm.type) {
+            setRoomError('Please select a room type.');
+            return;
+        }
+        addRoom({ number: trimmedNumber, type: newRoomForm.type });
         handleCloseRoomModal();
     };
     const handleDeleteRoom = (roomId: number) => {

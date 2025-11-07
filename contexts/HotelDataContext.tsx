@@ -358,12 +358,22 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
         
         case 'ADD_ROOM': {
             const { number, type } = action.payload;
+            const trimmedNumber = number.trim();
+
+            // Reducer-level validation for data integrity
+            if (state.rooms.some(r => r.number.toLowerCase() === trimmedNumber.toLowerCase())) {
+                return {
+                    ...state,
+                    syncLog: addLog(`Failed to add room: Number '${trimmedNumber}' already exists.`, 'error'),
+                };
+            }
+
             const roomTypeDetails = state.roomTypes.find(rt => rt.name === type);
             if (!roomTypeDetails) return state; // Should not happen with UI dropdown
 
             const newRoom = {
                 id: (state.rooms[state.rooms.length - 1]?.id || 0) + 1,
-                number,
+                number: trimmedNumber,
                 type,
                 rate: roomTypeDetails.rates.NGN, // Defaulting to NGN rate
                 status: RoomStatus.Vacant,
@@ -371,7 +381,7 @@ const hotelReducer = (state: HotelState, action: HotelAction): HotelState => {
             return {
                 ...state,
                 rooms: [...state.rooms, newRoom].sort((a,b) => a.number.localeCompare(b.number, undefined, { numeric: true })),
-                syncLog: addLog(`Added new room: ${number} (${type}).`, 'success'),
+                syncLog: addLog(`Added new room: ${newRoom.number} (${type}).`, 'success'),
             };
         }
 
