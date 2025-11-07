@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 // FIX: Added file extensions to fix module resolution errors.
 import type { HotelData, Room, RoomStatus } from '../types.ts';
 import { RoomStatus as RoomStatusEnum } from '../types.ts';
@@ -31,12 +31,55 @@ const StatusButton: React.FC<{
     );
 };
 
+const RoomCard: React.FC<{ room: Room; onClick: (room: Room) => void; disabled?: boolean }> = ({ room, onClick, disabled = false }) => (
+    <div
+      onClick={!disabled ? () => onClick(room) : undefined}
+      className={`p-3 rounded-lg shadow-sm border-l-4 transition-transform transform ${!disabled ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-80'} ${ROOM_STATUS_THEME[room.status].light} ${ROOM_STATUS_THEME[room.status].dark}`}
+      style={{ borderLeftColor: ROOM_STATUS_THEME[room.status].fill }}
+    >
+      <div className="flex justify-between items-center">
+        <p className={`font-bold ${ROOM_STATUS_THEME[room.status].text}`}>Room {room.number}</p>
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${ROOM_STATUS_THEME[room.status].badge} text-white`}>{room.status}</span>
+      </div>
+      <p className={`text-sm mt-1 ${ROOM_STATUS_THEME[room.status].text}`}>{room.type}</p>
+    </div>
+);
+
+const StatusColumn: React.FC<{ title: string, rooms: Room[], onRoomSelect: (room: Room) => void }> = ({ title, rooms, onRoomSelect }) => {
+    const status = rooms.length > 0 ? rooms[0].status : RoomStatusEnum.Vacant; // Bit of a hack to get a theme
+    const theme = ROOM_STATUS_THEME[status] || ROOM_STATUS_THEME[RoomStatusEnum.Vacant];
+
+    return (
+        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 flex-1">
+            <div className="flex items-center mb-4">
+                 <span className={`h-3 w-3 rounded-full mr-2`} style={{backgroundColor: theme.fill}}></span>
+                 <h3 className={`font-bold text-lg ${theme.text}`}>{title}</h3>
+                 <span className={`ml-2 text-sm font-bold px-2 py-0.5 rounded-full text-white ${theme.badge}`}>{rooms.length}</span>
+            </div>
+             <div className="space-y-3 max-h-[calc(100vh-22rem)] overflow-y-auto pr-2">
+                {rooms.length > 0 ? rooms.map(room => (
+                    <RoomCard 
+                        key={room.id} 
+                        room={room} 
+                        onClick={onRoomSelect} 
+                        disabled={room.status === RoomStatusEnum.OutOfOrder || room.status === RoomStatusEnum.Occupied}
+                    />
+                )) : (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No rooms.</p>
+                )}
+             </div>
+        </div>
+    );
+};
+
+
 export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
-  const { rooms, reservations, updateRoomStatus } = hotelData;
+  const { rooms, updateRoomStatus } = hotelData;
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const handleRoomSelect = (room: Room) => {
+    if (room.status === RoomStatusEnum.OutOfOrder || room.status === RoomStatusEnum.Occupied) return;
     setSelectedRoom(room);
     setIsModalOpen(true);
   };
@@ -49,74 +92,27 @@ export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
     setSelectedRoom(null);
   };
   
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todaysArrivalReservations = reservations.filter(r => r.checkInDate === todayStr);
-
-  const priorityRooms = rooms.filter(room => 
-    (room.status === RoomStatusEnum.Dirty || room.status === RoomStatusEnum.Cleaning) &&
-    todaysArrivalReservations.some(res => res.roomType === room.type)
-  );
-
-  const dirtyRooms = rooms.filter(r => r.status === RoomStatusEnum.Dirty);
-  const cleaningRooms = rooms.filter(r => r.status === RoomStatusEnum.Cleaning);
-  const occupiedRooms = rooms.filter(r => r.status === RoomStatusEnum.Occupied);
-  const vacantRooms = rooms.filter(r => r.status === RoomStatusEnum.Vacant);
-  const outOfOrderRooms = rooms.filter(r => r.status === RoomStatusEnum.OutOfOrder);
-
-
-  const RoomCard: React.FC<{ room: Room; disabled?: boolean }> = ({ room, disabled = false }) => (
-    <div
-      onClick={!disabled ? () => handleRoomSelect(room) : undefined}
-      className={`p-3 rounded-lg shadow-sm border-l-4 transition-transform transform ${!disabled ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-80'} ${ROOM_STATUS_THEME[room.status].light} ${ROOM_STATUS_THEME[room.status].dark}`}
-      style={{ borderLeftColor: ROOM_STATUS_THEME[room.status].fill }}
-    >
-      <div className="flex justify-between items-center">
-        <p className={`font-bold ${ROOM_STATUS_THEME[room.status].text}`}>Room {room.number}</p>
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${ROOM_STATUS_THEME[room.status].badge} text-white`}>{room.status}</span>
-      </div>
-      <p className={`text-sm mt-1 ${ROOM_STATUS_THEME[room.status].text}`}>{room.type}</p>
-    </div>
-  );
+  const categorizedRooms = useMemo(() => {
+    return {
+        dirty: rooms.filter(r => r.status === RoomStatusEnum.Dirty),
+        cleaning: rooms.filter(r => r.status === RoomStatusEnum.Cleaning),
+        vacant: rooms.filter(r => r.status === RoomStatusEnum.Vacant),
+        occupied: rooms.filter(r => r.status === RoomStatusEnum.Occupied),
+        outOfOrder: rooms.filter(r => r.status === RoomStatusEnum.OutOfOrder),
+    }
+  }, [rooms]);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <Card title="Priority: Upcoming Arrivals">
-            <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {priorityRooms.length > 0 ? priorityRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">All arrival rooms are ready.</p>}
-            </div>
-          </Card>
-          
-          <Card title="To Do: Dirty Rooms">
-            <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {dirtyRooms.length > 0 ? dirtyRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms require cleaning.</p>}
-            </div>
-          </Card>
-
-          <Card title="In Progress: Cleaning">
-             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {cleaningRooms.length > 0 ? cleaningRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are being cleaned.</p>}
-            </div>
-          </Card>
-
-          <Card title="Stay-overs: Occupied Rooms">
-             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {occupiedRooms.length > 0 ? occupiedRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are occupied.</p>}
-            </div>
-          </Card>
-
-          <Card title="Ready: Vacant">
-             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {vacantRooms.length > 0 ? vacantRooms.map(room => <RoomCard key={room.id} room={room} />) : <p className="text-slate-500 dark:text-slate-400">No vacant rooms.</p>}
-            </div>
-          </Card>
-
-          <Card title="Unavailable: Out of Order">
-             <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-              {outOfOrderRooms.length > 0 ? outOfOrderRooms.map(room => <RoomCard key={room.id} room={room} disabled={true} />) : <p className="text-slate-500 dark:text-slate-400">No rooms are out of order.</p>}
-            </div>
-          </Card>
-      </div>
+       <Card title="Housekeeping Status Board">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <StatusColumn title="Dirty" rooms={categorizedRooms.dirty} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Cleaning" rooms={categorizedRooms.cleaning} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Vacant" rooms={categorizedRooms.vacant} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Occupied" rooms={categorizedRooms.occupied} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Out of Order" rooms={categorizedRooms.outOfOrder} onRoomSelect={handleRoomSelect} />
+          </div>
+      </Card>
       
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Update Status for Room ${selectedRoom?.number}`}>
           {selectedRoom && (
