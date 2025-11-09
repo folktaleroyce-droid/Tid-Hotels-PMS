@@ -30,7 +30,7 @@ const getPaymentStatus = (balance: number, rate: number): PaymentStatus => {
 };
 
 export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
-  const { rooms, guests, transactions, updateGuestDetails, addTransaction, redeemLoyaltyPoints, addSyncLogEntry, taxSettings, deleteTransaction } = hotelData;
+  const { rooms, guests, transactions, updateGuestDetails, addTransaction, redeemLoyaltyPoints, taxSettings, deleteTransaction } = hotelData;
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [isFolioModalOpen, setIsFolioModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -224,7 +224,6 @@ export const Accounts: React.FC<AccountsProps> = ({ hotelData }) => {
 
         const result = await redeemLoyaltyPoints(selectedGuest.id, points);
         if (result.success) {
-            addSyncLogEntry(result.message, 'success');
             setIsRedeemModalOpen(false);
             setRedeemForm({ points: '' });
             setRedeemError('');

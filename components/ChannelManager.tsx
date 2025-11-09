@@ -13,7 +13,7 @@ const OTAs = ['Booking.com', 'Expedia', 'Agoda', 'Trivago'];
 
 
 export const ChannelManager: React.FC<ChannelManagerProps> = ({ hotelData }) => {
-    const { rooms, reservations, stopSell, setStopSell, syncLog, addSyncLogEntry, updateRate, roomTypes: hotelRoomTypes } = hotelData;
+    const { rooms, reservations, stopSell, setStopSell, syncLog, updateRate, roomTypes: hotelRoomTypes } = hotelData;
 
     const [isRateModalOpen, setRateModalOpen] = useState(false);
     
@@ -39,9 +39,11 @@ export const ChannelManager: React.FC<ChannelManagerProps> = ({ hotelData }) => 
     };
     
     const handleToggleStopSell = (roomType: string) => {
-        const newStopSellState = !stopSell[roomType];
-        setStopSell((prev: { [x: string]: any; }) => ({...prev, [roomType]: newStopSellState }));
-        addSyncLogEntry(`Stop Sell for ${roomType} rooms has been ${newStopSellState ? 'ENABLED' : 'DISABLED'}. Pushing update to channels.`, 'info');
+        const newStopSellState = {
+            ...stopSell,
+            [roomType]: !stopSell[roomType],
+        };
+        setStopSell(newStopSellState);
         triggerSyncAnimation();
     };
     

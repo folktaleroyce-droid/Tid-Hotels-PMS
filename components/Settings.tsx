@@ -4,7 +4,7 @@ import { Button } from './common/Button.tsx';
 import { useHotelData } from '../hooks/useHotelData.ts';
 
 export const Settings: React.FC = () => {
-    const { taxSettings, setTaxSettings, addSyncLogEntry } = useHotelData();
+    const { taxSettings, setTaxSettings } = useHotelData();
     const [localSettings, setLocalSettings] = useState(taxSettings);
     const [isSaved, setIsSaved] = useState(false);
 
@@ -22,7 +22,6 @@ export const Settings: React.FC = () => {
     
     const handleSave = () => {
         setTaxSettings(localSettings);
-        addSyncLogEntry(`Tax settings updated: Status=${localSettings.isEnabled ? 'Enabled' : 'Disabled'}, Rate=${localSettings.rate}%`, 'success');
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };

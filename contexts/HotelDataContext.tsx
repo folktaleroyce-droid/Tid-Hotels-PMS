@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, MaintenanceRequest, RoomType, TaxSettings, RoomStatus, MaintenanceStatus, HotelAction } from '../types.ts';
+// FIX: Removed unused and non-existent `HotelAction` type from import.
+import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, MaintenanceRequest, RoomType, TaxSettings, RoomStatus, MaintenanceStatus } from '../types.ts';
 
 // @ts-ignore
 const io = window.io;
@@ -84,7 +85,9 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         fetchInitialData();
 
         // Connect to WebSocket for real-time updates
-        const socket = io(API_URL);
+        const socket = io(API_URL, {
+            transports: ['websocket'], // Force websocket transport to avoid polling errors
+        });
 
         socket.on('connect', () => {
             console.log('Connected to backend WebSocket.');

@@ -27,7 +27,6 @@ export const Admin: React.FC = () => {
         deleteRoom, 
         taxSettings, 
         setTaxSettings, 
-        addSyncLogEntry, 
         clearAllData 
     } = useHotelData();
     
@@ -204,7 +203,6 @@ export const Admin: React.FC = () => {
     };
     const handleSaveSettings = () => {
         setTaxSettings(localSettings);
-        addSyncLogEntry(`Tax settings updated: Status=${localSettings.isEnabled ? 'Enabled' : 'Disabled'}, Rate=${localSettings.rate}%`, 'success');
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };

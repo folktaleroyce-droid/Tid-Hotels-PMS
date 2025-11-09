@@ -178,35 +178,6 @@ export interface TaxSettings {
     rate: number; // e.g., 7.5 for 7.5%
 }
 
-export type HotelAction =
-  | { type: 'CHECK_IN_GUEST'; payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number } }
-  | { type: 'ADD_ORDER'; payload: Omit<Order, 'id' | 'createdAt'> }
-  | { type: 'UPDATE_ROOM_STATUS'; payload: { roomId: number; status: RoomStatus; guestId?: number } }
-  | { type: 'ADD_TRANSACTION'; payload: Omit<Transaction, 'id'> }
-  | { type: 'ADD_WALK_IN_TRANSACTION'; payload: Omit<WalkInTransaction, 'id' | 'date'> }
-  | { type: 'ADD_EMPLOYEE'; payload: Omit<Employee, 'id'> }
-  | { type: 'UPDATE_EMPLOYEE'; payload: Employee }
-  | { type: 'DELETE_EMPLOYEE'; payload: number }
-  | { type: 'ADD_RESERVATION'; payload: Omit<Reservation, 'id'> }
-  | { type: 'ADD_SYNC_LOG_ENTRY'; payload: { message: string; level?: SyncLogEntry['level'] } }
-  | { type: 'UPDATE_RATE'; payload: { roomType: string; newRate: number; currency: 'NGN' | 'USD' } }
-  | { type: 'UPDATE_GUEST_DETAILS'; payload: { guestId: number; updatedGuest: Partial<Guest> } }
-  | { type: 'ADD_MAINTENANCE_REQUEST'; payload: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'> }
-  | { type: 'UPDATE_MAINTENANCE_REQUEST_STATUS'; payload: { requestId: number; status: MaintenanceStatus } }
-  | { type: 'ADD_LOYALTY_POINTS'; payload: { guestId: number; points: number; description: string } }
-  | { type: 'REDEEM_LOYALTY_POINTS'; payload: { guestId: number; pointsToRedeem: number } }
-  | { type: 'ADD_ROOM_TYPE'; payload: Omit<RoomType, 'id'> }
-  | { type: 'UPDATE_ROOM_TYPE'; payload: RoomType }
-  | { type: 'DELETE_ROOM_TYPE'; payload: number }
-  | { type: 'ADD_ROOM'; payload: { number: string; type: string } }
-  | { type: 'DELETE_ROOM'; payload: number }
-  | { type: 'CLEAR_ALL_DATA' }
-  | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: number; status: Order['status'] } }
-  | { type: 'DELETE_TRANSACTION'; payload: number }
-  | { type: 'SET_STOP_SELL'; payload: { [roomType: string]: boolean } }
-  | { type: 'MOVE_GUEST'; payload: { guestId: number; oldRoomId: number; newRoomId: number } }
-  | { type: 'SET_TAX_SETTINGS'; payload: TaxSettings };
-
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
@@ -223,7 +194,7 @@ export interface HotelData {
   stopSell: { [roomType: string]: boolean };
   
   // Action functions
-  checkInGuest: (payload: Extract<HotelAction, { type: 'CHECK_IN_GUEST' }>['payload']) => void;
+  checkInGuest: (payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number }) => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
   updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -237,7 +208,6 @@ export interface HotelData {
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => void;
   updateMaintenanceRequestStatus: (requestId: number, status: MaintenanceStatus) => void;
   addLoyaltyPoints: (guestId: number, points: number, description: string) => void;
-  // FIX: redeemLoyaltyPoints should return a promise as it's an async operation.
   redeemLoyaltyPoints: (guestId: number, pointsToRedeem: number) => Promise<{ success: boolean, message: string }>;
   addRoomType: (roomType: Omit<RoomType, 'id'>) => void;
   updateRoomType: (roomType: RoomType) => void;
@@ -249,6 +219,6 @@ export interface HotelData {
   deleteTransaction: (transactionId: number) => void;
   deleteEmployee: (employeeId: number) => void;
   moveGuest: (payload: { guestId: number; oldRoomId: number; newRoomId: number }) => void;
-  setStopSell: Dispatch<SetStateAction<{ [roomType: string]: boolean }>>;
-  setTaxSettings: Dispatch<SetStateAction<TaxSettings>>;
+  setStopSell: (stopSell: { [key: string]: boolean }) => void;
+  setTaxSettings: (taxSettings: TaxSettings) => void;
 }

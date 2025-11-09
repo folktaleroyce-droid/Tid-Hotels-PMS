@@ -24,7 +24,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
 
 
 export const LoyaltyProgram: React.FC<LoyaltyProgramProps> = ({ hotelData }) => {
-    const { guests, loyaltyTransactions, addLoyaltyPoints, redeemLoyaltyPoints, addSyncLogEntry } = hotelData;
+    const { guests, loyaltyTransactions, addLoyaltyPoints, redeemLoyaltyPoints } = hotelData;
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
     const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
@@ -93,12 +93,8 @@ export const LoyaltyProgram: React.FC<LoyaltyProgramProps> = ({ hotelData }) => 
         if (isValid) {
             if (adjustmentForm.type === 'earn') {
                 addLoyaltyPoints(selectedGuest.id, points, `Manual Adjustment: ${adjustmentForm.description}`);
-                addSyncLogEntry(`Manually added ${points} points to ${selectedGuest.name}.`, 'info');
             } else { // redeem
-                const result = await redeemLoyaltyPoints(selectedGuest.id, points);
-                if (result.success) {
-                   addSyncLogEntry(`Redeemed ${points} points from ${selectedGuest.name}'s account.`, 'info');
-                }
+                await redeemLoyaltyPoints(selectedGuest.id, points);
             }
             handleCloseModals();
         }
