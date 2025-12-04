@@ -1,10 +1,8 @@
-import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
-// FIX: Removed unused and non-existent `HotelAction` type from import.
-import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, MaintenanceRequest, RoomType, TaxSettings, RoomStatus, MaintenanceStatus } from '../types.ts';
 
-// @ts-ignore
-const io = window.io;
-const API_URL = 'http://localhost:5001'; // The address of the new Flask backend
+import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, MaintenanceRequest, RoomType, TaxSettings, RoomStatus, MaintenanceStatus, InventoryItem, Supplier } from '../types.ts';
+import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS } from '../constants.tsx';
+import { RoomStatus as RoomStatusEnum } from '../types.ts';
 
 // Define the shape of our state
 type HotelState = {
@@ -21,12 +19,14 @@ type HotelState = {
     roomTypes: RoomType[];
     taxSettings: TaxSettings;
     stopSell: { [key: string]: boolean };
+    inventory: InventoryItem[];
+    suppliers: Supplier[];
 };
 
 const INITIAL_STATE: HotelState = {
-    rooms: [],
+    rooms: INITIAL_ROOMS,
     guests: [],
-    reservations: [],
+    reservations: INITIAL_RESERVATIONS,
     transactions: [],
     loyaltyTransactions: [],
     walkInTransactions: [],
@@ -34,136 +34,422 @@ const INITIAL_STATE: HotelState = {
     employees: [],
     syncLog: [],
     maintenanceRequests: [],
-    roomTypes: [],
-    taxSettings: { isEnabled: true, rate: 7.5 },
+    roomTypes: INITIAL_ROOM_TYPES,
+    taxSettings: INITIAL_TAX_SETTINGS,
     stopSell: {},
+    inventory: INITIAL_INVENTORY,
+    suppliers: INITIAL_SUPPLIERS,
 };
 
 export const HotelDataContext = createContext<HotelData | undefined>(undefined);
 
-async function apiRequest(endpoint: string, method: string = 'GET', body?: any) {
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: body ? JSON.stringify(body) : undefined,
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'API request failed');
-        }
-        if (response.status === 204) { // No Content
-            return null;
-        }
-        return response.json();
-    } catch (error) {
-        console.error(`API Error on ${method} ${endpoint}:`, error);
-        // In a real app, you'd want a global error handling system here
-        alert(`An error occurred: ${error.message}`);
-        throw error;
-    }
-}
-
-
 export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [state, setState] = useState<HotelState>(INITIAL_STATE);
-    const [isConnected, setIsConnected] = useState(false);
+    // Load state from localStorage if available, else use INITIAL_STATE
+    const [state, setState] = useState<HotelState>(() => {
+        try {
+            const savedState = localStorage.getItem('tide_pms_data');
+            return savedState ? JSON.parse(savedState) : INITIAL_STATE;
+        } catch (error) {
+            console.error("Failed to load state from localStorage:", error);
+            return INITIAL_STATE;
+        }
+    });
 
+    // Save state to localStorage whenever it changes
     useEffect(() => {
-        // Fetch initial data from the backend
-        const fetchInitialData = async () => {
-            try {
-                const data = await apiRequest('/api/data');
-                setState(data);
-            } catch (error) {
-                console.error("Failed to fetch initial data", error);
+        try {
+            localStorage.setItem('tide_pms_data', JSON.stringify(state));
+        } catch (error) {
+            console.error("Failed to save state to localStorage:", error);
+        }
+    }, [state]);
+
+    // --- Helper to log actions ---
+    const log = (message: string, level: SyncLogEntry['level'] = 'info') => {
+        const newLog: SyncLogEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            message,
+            level
+        };
+        setState(prev => ({
+            ...prev,
+            syncLog: [newLog, ...prev.syncLog].slice(0, 50) // Keep last 50 logs
+        }));
+    };
+
+    // --- Action Implementations ---
+
+    const checkInGuest = (payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number }) => {
+        setState(prev => {
+            const newGuestId = Date.now();
+            const newGuest: Guest = { ...payload.guest, id: newGuestId };
+            
+            // Create Transactions
+            const newTransactions = [...prev.transactions];
+            newTransactions.push({ ...payload.charge, id: Date.now(), guestId: newGuestId });
+            if (payload.tax) {
+                newTransactions.push({ ...payload.tax, id: Date.now() + 1, guestId: newGuestId });
             }
-        };
 
-        fetchInitialData();
+            // Update Room
+            const updatedRooms = prev.rooms.map(r => 
+                r.id === payload.roomId ? { ...r, status: RoomStatusEnum.Occupied, guestId: newGuestId } : r
+            );
 
-        // Connect to WebSocket for real-time updates
-        const socket = io(API_URL, {
-            transports: ['websocket'], // Force websocket transport to avoid polling errors
+            // Remove Reservation if exists
+            let updatedReservations = prev.reservations;
+            if (payload.reservationId) {
+                updatedReservations = prev.reservations.filter(r => r.id !== payload.reservationId);
+            }
+
+            return {
+                ...prev,
+                guests: [...prev.guests, newGuest],
+                transactions: newTransactions,
+                rooms: updatedRooms,
+                reservations: updatedReservations
+            };
         });
+        log(`Checked in ${payload.guest.name} to Room ID ${payload.roomId}`, 'success');
+    };
 
-        socket.on('connect', () => {
-            console.log('Connected to backend WebSocket.');
-            setIsConnected(true);
+    const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
+        setState(prev => ({
+            ...prev,
+            rooms: prev.rooms.map(r => r.id === roomId ? { ...r, status, guestId } : r)
+        }));
+        log(`Updated Room ${roomId} status to ${status}`, 'info');
+    };
+
+    const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+        setState(prev => ({
+            ...prev,
+            transactions: [...prev.transactions, { ...transaction, id: Date.now() }]
+        }));
+        log(`Added transaction: ${transaction.description}`, 'info');
+    };
+
+    const deleteTransaction = (transactionId: number) => {
+        setState(prev => ({
+            ...prev,
+            transactions: prev.transactions.filter(t => t.id !== transactionId)
+        }));
+        log(`Deleted transaction ID ${transactionId}`, 'warn');
+    };
+
+    const addOrder = (order: Omit<Order, 'id' | 'createdAt'>) => {
+        setState(prev => ({
+            ...prev,
+            orders: [...prev.orders, { ...order, id: Date.now(), createdAt: new Date().toISOString() }]
+        }));
+        log(`New order placed for Room ID ${order.roomId}`, 'success');
+    };
+
+    const updateOrderStatus = (orderId: number, status: Order['status']) => {
+        setState(prev => ({
+            ...prev,
+            orders: prev.orders.map(o => o.id === orderId ? { ...o, status } : o)
+        }));
+    };
+
+    const addReservation = (reservation: Omit<Reservation, 'id'>) => {
+         setState(prev => ({
+            ...prev,
+            reservations: [...prev.reservations, { ...reservation, id: Date.now() }]
+        }));
+        log(`New reservation for ${reservation.guestName}`, 'success');
+    };
+
+    const addWalkInTransaction = (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => {
+        setState(prev => ({
+            ...prev,
+            walkInTransactions: [...prev.walkInTransactions, { ...transaction, id: Date.now(), date: new Date().toISOString().split('T')[0] }]
+        }));
+        log('Processed new walk-in transaction', 'success');
+    };
+
+    const addMaintenanceRequest = (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => {
+        setState(prev => ({
+            ...prev,
+            maintenanceRequests: [...prev.maintenanceRequests, { 
+                ...request, 
+                id: Date.now(), 
+                reportedAt: new Date().toLocaleDateString(), 
+                status: 'Reported' 
+            }]
+        }));
+        log('New maintenance request reported', 'warn');
+    };
+
+    const updateMaintenanceRequestStatus = (requestId: number, status: MaintenanceStatus) => {
+        setState(prev => ({
+            ...prev,
+            maintenanceRequests: prev.maintenanceRequests.map(req => req.id === requestId ? { ...req, status } : req)
+        }));
+    };
+
+    const addEmployee = (employee: Omit<Employee, 'id'>) => {
+        setState(prev => ({
+            ...prev,
+            employees: [...prev.employees, { ...employee, id: Date.now() }]
+        }));
+        log(`Added new employee: ${employee.name}`, 'info');
+    };
+
+    const updateEmployee = (employee: Employee) => {
+        setState(prev => ({
+            ...prev,
+            employees: prev.employees.map(e => e.id === employee.id ? employee : e)
+        }));
+        log(`Updated employee: ${employee.name}`, 'info');
+    };
+
+    const deleteEmployee = (employeeId: number) => {
+        setState(prev => ({
+            ...prev,
+            employees: prev.employees.filter(e => e.id !== employeeId)
+        }));
+        log('Removed employee', 'warn');
+    };
+
+    const updateGuestDetails = (guestId: number, updatedGuest: Partial<Guest>) => {
+        setState(prev => ({
+            ...prev,
+            guests: prev.guests.map(g => g.id === guestId ? { ...g, ...updatedGuest } : g)
+        }));
+        log('Updated guest details', 'info');
+    };
+
+    const moveGuest = (payload: { guestId: number; oldRoomId: number; newRoomId: number }) => {
+        setState(prev => {
+            const oldRoom = prev.rooms.find(r => r.id === payload.oldRoomId);
+            const newRoom = prev.rooms.find(r => r.id === payload.newRoomId);
+            const guest = prev.guests.find(g => g.id === payload.guestId);
+
+            if (!oldRoom || !newRoom || !guest) return prev;
+
+            // Update rooms
+            const updatedRooms = prev.rooms.map(r => {
+                if (r.id === payload.oldRoomId) return { ...r, status: RoomStatusEnum.Dirty, guestId: undefined };
+                if (r.id === payload.newRoomId) return { ...r, status: RoomStatusEnum.Occupied, guestId: payload.guestId };
+                return r;
+            });
+
+            // Update guest
+            const updatedGuests = prev.guests.map(g => 
+                g.id === payload.guestId ? { ...g, roomNumber: newRoom.number, roomType: newRoom.type } : g
+            );
+
+            return {
+                ...prev,
+                rooms: updatedRooms,
+                guests: updatedGuests
+            };
+        });
+        log('Moved guest to new room', 'info');
+    };
+
+    const updateRate = (roomType: string, newRate: number, currency: 'NGN' | 'USD') => {
+        setState(prev => ({
+            ...prev,
+            roomTypes: prev.roomTypes.map(rt => 
+                rt.name === roomType 
+                ? { ...rt, rates: { ...rt.rates, [currency]: newRate } }
+                : rt
+            ),
+            // Also update actual rooms of this type
+            rooms: prev.rooms.map(r => 
+                r.type === roomType 
+                ? { ...r, rate: currency === 'NGN' ? newRate : r.rate } 
+                : r
+            )
+        }));
+        log(`Updated base rate for ${roomType}`, 'info');
+    };
+    
+    const addRoomType = (roomType: Omit<RoomType, 'id'>) => {
+        setState(prev => ({
+            ...prev,
+            roomTypes: [...prev.roomTypes, { ...roomType, id: Date.now() }]
+        }));
+    };
+
+    const updateRoomType = (roomType: RoomType) => {
+        setState(prev => ({
+            ...prev,
+            roomTypes: prev.roomTypes.map(rt => rt.id === roomType.id ? roomType : rt)
+        }));
+    };
+
+    const deleteRoomType = (roomTypeId: number) => {
+        setState(prev => {
+            const typeToDelete = prev.roomTypes.find(rt => rt.id === roomTypeId);
+            if(!typeToDelete) return prev;
+            
+            return {
+                ...prev,
+                roomTypes: prev.roomTypes.filter(rt => rt.id !== roomTypeId),
+                rooms: prev.rooms.filter(r => r.type !== typeToDelete.name)
+            }
+        });
+    };
+
+    const addRoom = (room: { number: string; type: string }) => {
+        setState(prev => {
+            const roomType = prev.roomTypes.find(rt => rt.name === room.type);
+            const rate = roomType ? roomType.rates.NGN : 0;
+            return {
+                ...prev,
+                rooms: [...prev.rooms, { id: Date.now(), number: room.number, type: room.type, rate, status: RoomStatusEnum.Vacant }]
+            }
+        });
+    };
+
+    const deleteRoom = (roomId: number) => {
+        setState(prev => ({
+            ...prev,
+            rooms: prev.rooms.filter(r => r.id !== roomId)
+        }));
+    };
+
+    const setStopSell = (stopSell: { [key: string]: boolean }) => {
+        setState(prev => ({ ...prev, stopSell }));
+    };
+
+    const setTaxSettings = (taxSettings: TaxSettings) => {
+        setState(prev => ({ ...prev, taxSettings }));
+    };
+
+    // --- Inventory Actions ---
+    const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
+        setState(prev => ({
+            ...prev,
+            inventory: [...prev.inventory, { ...item, id: Date.now() }]
+        }));
+        log(`Added inventory item: ${item.name}`, 'info');
+    };
+
+    const updateInventoryItem = (item: InventoryItem) => {
+        setState(prev => ({
+            ...prev,
+            inventory: prev.inventory.map(i => i.id === item.id ? item : i)
+        }));
+        log(`Updated inventory: ${item.name}`, 'info');
+    };
+
+    const deleteInventoryItem = (itemId: number) => {
+        setState(prev => ({
+            ...prev,
+            inventory: prev.inventory.filter(i => i.id !== itemId)
+        }));
+        log(`Deleted inventory item`, 'warn');
+    };
+
+    const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
+        setState(prev => ({
+            ...prev,
+            suppliers: [...prev.suppliers, { ...supplier, id: Date.now() }]
+        }));
+        log(`Added supplier: ${supplier.name}`, 'info');
+    };
+
+    const updateSupplier = (supplier: Supplier) => {
+        setState(prev => ({
+            ...prev,
+            suppliers: prev.suppliers.map(s => s.id === supplier.id ? supplier : s)
+        }));
+        log(`Updated supplier: ${supplier.name}`, 'info');
+    };
+
+    const deleteSupplier = (supplierId: number) => {
+        setState(prev => ({
+            ...prev,
+            suppliers: prev.suppliers.filter(s => s.id !== supplierId)
+        }));
+        log(`Deleted supplier`, 'warn');
+    };
+
+    const clearAllData = () => {
+        setState({ ...INITIAL_STATE, rooms: [], roomTypes: [], inventory: [], suppliers: [] }); 
+        localStorage.removeItem('tide_pms_data');
+        window.location.reload();
+    };
+    
+    const addLoyaltyPoints = (guestId: number, points: number, description: string) => {
+        setState(prev => ({
+            ...prev,
+            guests: prev.guests.map(g => g.id === guestId ? { ...g, loyaltyPoints: g.loyaltyPoints + points } : g),
+            loyaltyTransactions: [...prev.loyaltyTransactions, { id: Date.now(), guestId, points, description, date: new Date().toISOString().split('T')[0] }]
+        }));
+        log(`Added ${points} loyalty points`, 'success');
+    };
+
+    const redeemLoyaltyPoints = async (guestId: number, pointsToRedeem: number): Promise<{ success: boolean, message: string }> => {
+        let result = { success: false, message: '' };
+        
+        setState(prev => {
+            const guest = prev.guests.find(g => g.id === guestId);
+            if (!guest || guest.loyaltyPoints < pointsToRedeem) {
+                result = { success: false, message: 'Insufficient points' };
+                return prev;
+            }
+            
+            result = { success: true, message: 'Points redeemed successfully' };
+            return {
+                ...prev,
+                guests: prev.guests.map(g => g.id === guestId ? { ...g, loyaltyPoints: g.loyaltyPoints - pointsToRedeem } : g),
+                loyaltyTransactions: [...prev.loyaltyTransactions, { id: Date.now(), guestId, points: -pointsToRedeem, description: 'Redemption', date: new Date().toISOString().split('T')[0] }]
+            };
         });
         
-        // This is the core of the real-time functionality.
-        // The server emits 'data_update' whenever any data changes.
-        // We receive the complete, fresh state and update our local state.
-        socket.on('data_update', (updatedData: HotelState) => {
-            console.log('Received data update from server.');
-            setState(updatedData);
-        });
+        return result;
+    };
 
-        socket.on('disconnect', () => {
-            console.log('Disconnected from backend WebSocket.');
-            setIsConnected(false);
-        });
-        
-        socket.on('connect_error', (err) => {
-          console.error("Connection Error", err);
-        });
+    const addSyncLogEntry = (message: string, level?: SyncLogEntry['level']) => {
+        log(message, level);
+    };
 
-
-        // Cleanup on component unmount
-        return () => {
-            socket.disconnect();
-        };
-    }, []);
-
-    // Create context value with user-friendly action functions that call the backend API
+    // Context Value
     const value: HotelData = useMemo(() => ({
         ...state,
-        checkInGuest: (payload) => apiRequest('/api/guests/check-in', 'POST', payload),
-        addOrder: (order) => apiRequest('/api/orders', 'POST', order),
-        updateRoomStatus: (roomId, status, guestId) => apiRequest(`/api/rooms/${roomId}/status`, 'PUT', { status, guestId }),
-        addTransaction: (transaction) => apiRequest('/api/transactions', 'POST', transaction),
-        addWalkInTransaction: (transaction) => apiRequest('/api/walk-in-transactions', 'POST', transaction),
-        addEmployee: (employee) => apiRequest('/api/employees', 'POST', employee),
-        updateEmployee: (employee) => apiRequest(`/api/employees/${employee.id}`, 'PUT', employee),
-        addReservation: (reservation) => apiRequest('/api/reservations', 'POST', reservation),
-        addSyncLogEntry: (message, level) => apiRequest('/api/logs', 'POST', { message, level }),
-        updateRate: (roomType, newRate, currency) => apiRequest('/api/rates', 'PUT', { roomType, newRate, currency }),
-        updateGuestDetails: (guestId, updatedGuest) => apiRequest(`/api/guests/${guestId}`, 'PUT', updatedGuest),
-        addMaintenanceRequest: (request) => apiRequest('/api/maintenance', 'POST', request),
-        updateMaintenanceRequestStatus: (requestId, status) => apiRequest(`/api/maintenance/${requestId}/status`, 'PUT', { status }),
-        addLoyaltyPoints: (guestId, points, description) => apiRequest('/api/loyalty/add', 'POST', { guestId, points, description }),
-        redeemLoyaltyPoints: async (guestId, pointsToRedeem) => {
-           try {
-                return await apiRequest('/api/loyalty/redeem', 'POST', { guestId, pointsToRedeem });
-           } catch (error) {
-               return { success: false, message: error.message };
-           }
-        },
-        addRoomType: (roomType) => apiRequest('/api/room-types', 'POST', roomType),
-        updateRoomType: (roomType) => apiRequest(`/api/room-types/${roomType.id}`, 'PUT', roomType),
-        deleteRoomType: (roomTypeId) => apiRequest(`/api/room-types/${roomTypeId}`, 'DELETE'),
-        addRoom: (room) => apiRequest('/api/rooms', 'POST', room),
-        deleteRoom: (roomId) => apiRequest(`/api/rooms/${roomId}`, 'DELETE'),
-        clearAllData: () => apiRequest('/api/data/clear', 'POST'),
-        updateOrderStatus: (orderId, status) => apiRequest(`/api/orders/${orderId}/status`, 'PUT', { status }),
-        deleteTransaction: (transactionId) => apiRequest(`/api/transactions/${transactionId}`, 'DELETE'),
-        deleteEmployee: (employeeId) => apiRequest(`/api/employees/${employeeId}`, 'DELETE'),
-        moveGuest: (payload) => apiRequest('/api/guests/move', 'POST', payload),
-        setStopSell: (newStopSellState) => apiRequest('/api/stop-sell', 'POST', {stopSell: newStopSellState}),
-        setTaxSettings: (newTaxSettings) => apiRequest('/api/settings/tax', 'POST', newTaxSettings),
+        checkInGuest,
+        updateRoomStatus,
+        addTransaction,
+        deleteTransaction,
+        addOrder,
+        updateOrderStatus,
+        addReservation,
+        addWalkInTransaction,
+        addMaintenanceRequest,
+        updateMaintenanceRequestStatus,
+        addEmployee,
+        updateEmployee,
+        deleteEmployee,
+        updateGuestDetails,
+        moveGuest,
+        updateRate,
+        addRoomType,
+        updateRoomType,
+        deleteRoomType,
+        addRoom,
+        deleteRoom,
+        setStopSell,
+        setTaxSettings,
+        clearAllData,
+        addLoyaltyPoints,
+        redeemLoyaltyPoints,
+        addSyncLogEntry,
+        // Inventory exports
+        addInventoryItem,
+        updateInventoryItem,
+        deleteInventoryItem,
+        addSupplier,
+        updateSupplier,
+        deleteSupplier
     }), [state]);
-
 
     return (
         <HotelDataContext.Provider value={value}>
-            {!isConnected && (
-                <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-2 z-50">
-                    Connecting to backend... If this persists, please ensure the server is running.
-                </div>
-            )}
             {children}
         </HotelDataContext.Provider>
     );

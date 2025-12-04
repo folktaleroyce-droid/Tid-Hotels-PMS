@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings, Staff, UserRole } from './types.ts';
+import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings, Staff, UserRole, InventoryItem, Supplier, InventoryCategory } from './types.ts';
 
 const today = new Date();
 const tomorrow = new Date(today);
@@ -41,80 +42,127 @@ export const INITIAL_TAX_SETTINGS: TaxSettings = {
 };
 
 export const INITIAL_STAFF: Staff[] = [
-    { id: 1, name: 'Faith', email: 'faith@tide.com', password: 'F@i7h#92X!', role: UserRole.FrontDesk },
-    { id: 2, name: 'Goodness', email: 'goodness@tide.com', password: 'G00d*N3ss$4', role: UserRole.Housekeeping },
-    { id: 3, name: 'Benjamin', email: 'benjamin@tide.com', password: 'B3nJ&9m_84', role: UserRole.Maintenance },
-    { id: 4, name: 'Sandra', email: 'sandra@tide.com', password: 'S@ndR4!51%', role: UserRole.Restaurant },
-    { id: 5, name: 'David', email: 'david@tide.com', password: 'D@v1D#73Q', role: UserRole.Accounts },
-    { id: 6, name: 'Ifeanyi', email: 'ifeanyi@tide.com', password: '1F3@yN!88*', role: UserRole.FrontDesk },
-    { id: 7, name: 'Margret', email: 'margret@tide.com', password: 'M@rG7eT_42', role: UserRole.Housekeeping },
-    { id: 8, name: 'Miriam', email: 'miriam@tide.com', password: 'M1r!@m#97W', role: UserRole.Restaurant },
+    { id: 1, name: 'Faith', email: 'faith@tide.com', password: 'F@i7h#92X!', role: UserRole.Manager },
+    { id: 2, name: 'Goodness', email: 'goodness@tide.com', password: 'G00d*N3ss$4', role: UserRole.FrontDesk },
+    { id: 3, name: 'Benjamin', email: 'benjamin@tide.com', password: 'B3nJ&9m_84', role: UserRole.Manager },
+    { id: 4, name: 'Sandra', email: 'sandra@tide.com', password: 'S@ndR4!51%', role: UserRole.Housekeeping },
+    { id: 5, name: 'David', email: 'david@tide.com', password: 'D@v1D#73Q', role: UserRole.Maintenance },
+    { id: 6, name: 'Ifeanyi', email: 'ifeanyi@tide.com', password: '1F3@yN!88*', role: UserRole.Restaurant },
+    { id: 7, name: 'Margret', email: 'margret@tide.com', password: 'M@rG7eT_42', role: UserRole.Accounts },
+    { id: 8, name: 'Miriam', email: 'miriam@tide.com', password: 'M1r!@m#97W', role: UserRole.FrontDesk },
     { id: 9, name: 'Francis', email: 'francis@tide.com', password: 'Fr@nC1$62!', role: UserRole.Manager },
 ];
 
-export const INITIAL_ROOM_TYPES: RoomType[] = [];
-
-export const INITIAL_ROOMS: Room[] = [];
-
-export const INITIAL_GUESTS: Guest[] = [];
-
-export const INITIAL_TRANSACTIONS: Transaction[] = [];
-
-export const INITIAL_LOYALTY_TRANSACTIONS: LoyaltyTransaction[] = [];
-
-export const INITIAL_ORDERS: Order[] = [];
-
-export const INITIAL_EMPLOYEES: Employee[] = [];
-
-export const INITIAL_RESERVATIONS: Reservation[] = [];
-
-export const INITIAL_MAINTENANCE_REQUESTS: MaintenanceRequest[] = [];
-
-// FIX: Added MENU_ITEMS constant to be used by the Restaurant component.
-export const MENU_ITEMS: { name: string; price: number }[] = [
-    { name: 'Jollof Rice with Chicken', price: 8500 },
-    { name: 'Fried Rice with Beef', price: 8000 },
-    { name: 'Efo Riro with Pounded Yam', price: 9500 },
-    { name: 'Spaghetti Bolognese', price: 12000 },
-    { name: 'Classic Cheeseburger & Fries', price: 11500 },
-    { name: 'Club Sandwich', price: 10000 },
-    { name: 'Chicken Caesar Salad', price: 9000 },
-    { name: 'Coca-Cola', price: 1000 },
-    { name: 'Bottled Water', price: 800 },
-    { name: 'Fresh Orange Juice', price: 2500 },
+export const INITIAL_ROOM_TYPES: RoomType[] = [
+    { id: 1, name: 'Standard Room', rates: { NGN: 45000, USD: 60 }, capacity: 2 },
+    { id: 2, name: 'Deluxe Room', rates: { NGN: 65000, USD: 85 }, capacity: 2 },
+    { id: 3, name: 'Executive Suite', rates: { NGN: 95000, USD: 125 }, capacity: 3 },
+    { id: 4, name: 'Presidential Suite', rates: { NGN: 250000, USD: 330 }, capacity: 4 },
 ];
 
+export const INITIAL_ROOMS: Room[] = [
+    { id: 101, number: '101', type: 'Standard Room', rate: 45000, status: RoomStatus.Occupied, guestId: 1 },
+    { id: 102, number: '102', type: 'Standard Room', rate: 45000, status: RoomStatus.Vacant },
+    { id: 103, number: '103', type: 'Standard Room', rate: 45000, status: RoomStatus.Dirty },
+    { id: 104, number: '104', type: 'Standard Room', rate: 45000, status: RoomStatus.Cleaning },
+    { id: 105, number: '105', type: 'Standard Room', rate: 45000, status: RoomStatus.OutOfOrder },
+    { id: 201, number: '201', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
+    { id: 202, number: '202', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
+    { id: 203, number: '203', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
+    { id: 204, number: '204', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Occupied, guestId: 2 },
+    { id: 205, number: '205', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
+    { id: 301, number: '301', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant },
+    { id: 302, number: '302', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant },
+    { id: 401, number: '401', type: 'Presidential Suite', rate: 250000, status: RoomStatus.Vacant },
+];
+
+export const INITIAL_RESERVATIONS: Reservation[] = [
+    {
+        id: 1,
+        guestName: 'John Doe',
+        guestEmail: 'john@example.com',
+        guestPhone: '1234567890',
+        checkInDate: today.toISOString().split('T')[0],
+        checkOutDate: tomorrow.toISOString().split('T')[0],
+        roomType: 'Deluxe Room',
+        ota: 'Booking.com'
+    },
+    {
+        id: 2,
+        guestName: 'Jane Smith',
+        guestEmail: 'jane@example.com',
+        guestPhone: '0987654321',
+        checkInDate: tomorrow.toISOString().split('T')[0],
+        checkOutDate: new Date(tomorrow.getTime() + 86400000 * 2).toISOString().split('T')[0],
+        roomType: 'Executive Suite',
+        ota: 'Expedia'
+    },
+    {
+        id: 3,
+        guestName: 'Michael Johnson',
+        guestEmail: 'michael@example.com',
+        guestPhone: '5551234567',
+        checkInDate: today.toISOString().split('T')[0],
+        checkOutDate: tomorrow.toISOString().split('T')[0],
+        roomType: 'Standard Room',
+        ota: 'Direct'
+    }
+];
 
 export const ROOM_STATUS_THEME = {
-    [RoomStatus.Vacant]: { light: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-800 dark:text-green-300', fill: '#10B981', badge: 'bg-green-500', dark: 'dark:border-green-700' },
-    [RoomStatus.Occupied]: { light: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-800 dark:text-blue-300', fill: '#3B82F6', badge: 'bg-blue-500', dark: 'dark:border-blue-700' },
-    [RoomStatus.Dirty]: { light: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-800 dark:text-yellow-300', fill: '#F59E0B', badge: 'bg-yellow-500', dark: 'dark:border-yellow-700' },
-    [RoomStatus.Cleaning]: { light: 'bg-cyan-100 dark:bg-cyan-900/50', text: 'text-cyan-800 dark:text-cyan-300', fill: '#06B6D4', badge: 'bg-cyan-500', dark: 'dark:border-cyan-700' },
-    [RoomStatus.OutOfOrder]: { light: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-800 dark:text-red-300', fill: '#EF4444', badge: 'bg-red-500', dark: 'dark:border-red-700' },
+  [RoomStatus.Vacant]: { light: 'bg-green-100', dark: 'dark:bg-green-900/30', text: 'text-green-800 dark:text-green-200', border: 'border-green-500', badge: 'bg-green-500', fill: '#22c55e' },
+  [RoomStatus.Occupied]: { light: 'bg-blue-100', dark: 'dark:bg-blue-900/30', text: 'text-blue-800 dark:text-blue-200', border: 'border-blue-500', badge: 'bg-blue-500', fill: '#3b82f6' },
+  [RoomStatus.Dirty]: { light: 'bg-red-100', dark: 'dark:bg-red-900/30', text: 'text-red-800 dark:text-red-200', border: 'border-red-500', badge: 'bg-red-500', fill: '#ef4444' },
+  [RoomStatus.Cleaning]: { light: 'bg-yellow-100', dark: 'dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-200', border: 'border-yellow-500', badge: 'bg-yellow-500', fill: '#eab308' },
+  [RoomStatus.OutOfOrder]: { light: 'bg-slate-300', dark: 'dark:bg-slate-700', text: 'text-slate-800 dark:text-slate-200', border: 'border-slate-500', badge: 'bg-slate-500', fill: '#64748b' },
+};
+
+export const MAINTENANCE_PRIORITY_THEME = {
+    [MaintenancePriority.Low]: { bg: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-200' },
+    [MaintenancePriority.Medium]: { bg: 'bg-yellow-100 dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-200' },
+    [MaintenancePriority.High]: { bg: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200' },
+};
+
+export const MENU_ITEMS = [
+    { name: 'Jollof Rice', price: 4500 },
+    { name: 'Fried Rice', price: 4500 },
+    { name: 'Grilled Chicken', price: 3500 },
+    { name: 'Pepper Soup', price: 3000 },
+    { name: 'Coleslaw', price: 1500 },
+    { name: 'Bottle Water', price: 500 },
+    { name: 'Soda', price: 700 },
+    { name: 'Beer', price: 1500 },
+];
+
+export const PAYMENT_STATUS_THEME = {
+    [PaymentStatus.Paid]: { bg: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-200', label: 'Paid', icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg> },
+    [PaymentStatus.Pending]: { bg: 'bg-yellow-100 dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-200', label: 'Pending', icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> },
+    [PaymentStatus.Owing]: { bg: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200', label: 'Owing', icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> },
 };
 
 export const LOYALTY_TIER_THEME = {
-    [LoyaltyTier.Bronze]: { bg: 'bg-orange-200 dark:bg-orange-800', text: 'text-orange-800 dark:text-orange-200' },
-    [LoyaltyTier.Silver]: { bg: 'bg-slate-300 dark:bg-slate-600', text: 'text-slate-800 dark:text-slate-200' },
-    [LoyaltyTier.Gold]: { bg: 'bg-yellow-300 dark:bg-yellow-600', text: 'text-yellow-800 dark:text-yellow-100' },
-    [LoyaltyTier.Platinum]: { bg: 'bg-indigo-300 dark:bg-indigo-700', text: 'text-indigo-800 dark:text-indigo-200' },
+    [LoyaltyTier.Bronze]: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-800 dark:text-orange-200' },
+    [LoyaltyTier.Silver]: { bg: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-700 dark:text-slate-300' },
+    [LoyaltyTier.Gold]: { bg: 'bg-yellow-100 dark:bg-yellow-900/40', text: 'text-yellow-800 dark:text-yellow-200' },
+    [LoyaltyTier.Platinum]: { bg: 'bg-indigo-100 dark:bg-indigo-900/40', text: 'text-indigo-800 dark:text-indigo-200' },
 };
 
-// FIX: Added MAINTENANCE_PRIORITY_THEME for use in the Maintenance component.
-export const MAINTENANCE_PRIORITY_THEME = {
-    [MaintenancePriority.Low]: { bg: 'bg-green-100 dark:bg-green-800', text: 'text-green-800 dark:text-green-200' },
-    [MaintenancePriority.Medium]: { bg: 'bg-yellow-100 dark:bg-yellow-700', text: 'text-yellow-800 dark:text-yellow-100' },
-    [MaintenancePriority.High]: { bg: 'bg-red-100 dark:bg-red-800', text: 'text-red-800 dark:text-red-200' },
-};
+// --- Inventory Constants ---
+export const INITIAL_SUPPLIERS: Supplier[] = [
+    { id: 1, name: 'Hotel Linens Co.', contactPerson: 'John Doe', email: 'orders@linens.com', phone: '123-456-7890', address: '123 Textile Way', category: InventoryCategory.Housekeeping },
+    { id: 2, name: 'Fresh Foods Ltd.', contactPerson: 'Jane Smith', email: 'sales@freshfoods.com', phone: '098-765-4321', address: '456 Market St', category: InventoryCategory.FoodAndBeverage },
+    { id: 3, name: 'City Beverages', contactPerson: 'Mike Brown', email: 'mike@citybev.com', phone: '555-123-4567', address: '789 Drink Ave', category: InventoryCategory.FoodAndBeverage }
+];
 
-// FIX: Moved icon component declarations before their usage in PAYMENT_STATUS_THEME to fix 'used before declaration' errors.
-// FIX: Re-created icon components and added PAYMENT_STATUS_THEME to resolve import errors.
-const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const ExclamationCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-
-export const PAYMENT_STATUS_THEME = {
-    [PaymentStatus.Paid]: { bg: 'bg-green-100 dark:bg-green-800', text: 'text-green-800 dark:text-green-200', icon: <CheckCircleIcon />, label: 'Paid' },
-    [PaymentStatus.Pending]: { bg: 'bg-yellow-100 dark:bg-yellow-700', text: 'text-yellow-800 dark:text-yellow-100', icon: <ClockIcon />, label: 'Pending' },
-    [PaymentStatus.Owing]: { bg: 'bg-red-100 dark:bg-red-800', text: 'text-red-800 dark:text-red-200', icon: <ExclamationCircleIcon />, label: 'Owing' },
-};
+export const INITIAL_INVENTORY: InventoryItem[] = [
+    { id: 1, name: 'Bath Towels', category: InventoryCategory.Housekeeping, quantity: 150, unit: 'pcs', reorderLevel: 50, costPerUnit: 2500, supplierId: 1, location: 'Linen Closet A' },
+    { id: 2, name: 'Hand Towels', category: InventoryCategory.Housekeeping, quantity: 200, unit: 'pcs', reorderLevel: 80, costPerUnit: 1200, supplierId: 1, location: 'Linen Closet A' },
+    { id: 3, name: 'Shampoo (Mini)', category: InventoryCategory.Housekeeping, quantity: 40, unit: 'bottles', reorderLevel: 100, costPerUnit: 150, supplierId: 1, location: 'Storage Room 1' },
+    { id: 4, name: 'Soap Bars', category: InventoryCategory.Housekeeping, quantity: 300, unit: 'pcs', reorderLevel: 100, costPerUnit: 100, supplierId: 1, location: 'Storage Room 1' },
+    { id: 5, name: 'Toilet Paper', category: InventoryCategory.Housekeeping, quantity: 500, unit: 'rolls', reorderLevel: 150, costPerUnit: 200, supplierId: 1, location: 'Storage Room 1' },
+    { id: 6, name: 'Tomatoes', category: InventoryCategory.FoodAndBeverage, quantity: 10, unit: 'kg', reorderLevel: 15, costPerUnit: 1200, supplierId: 2, expiryDate: '2023-12-31', location: 'Kitchen Fridge' },
+    { id: 7, name: 'Rice (50kg)', category: InventoryCategory.FoodAndBeverage, quantity: 2, unit: 'bags', reorderLevel: 2, costPerUnit: 45000, supplierId: 2, location: 'Pantry' },
+    { id: 8, name: 'Whiskey (Jameson)', category: InventoryCategory.FoodAndBeverage, quantity: 3, unit: 'bottles', reorderLevel: 5, costPerUnit: 15000, supplierId: 3, location: 'Main Bar' },
+    { id: 9, name: 'Vodka (Absolut)', category: InventoryCategory.FoodAndBeverage, quantity: 8, unit: 'bottles', reorderLevel: 5, costPerUnit: 12000, supplierId: 3, location: 'Main Bar' },
+    { id: 10, name: 'Coca Cola (Crates)', category: InventoryCategory.FoodAndBeverage, quantity: 12, unit: 'crates', reorderLevel: 10, costPerUnit: 3500, supplierId: 3, location: 'Bar Storage' },
+];

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar.tsx';
 import { Header } from './components/Header.tsx';
@@ -17,11 +18,13 @@ import { LoyaltyProgram } from './components/LoyaltyProgram.tsx';
 import { WelcomeScreen } from './components/WelcomeScreen.tsx';
 import { WalkIn } from './components/WalkIn.tsx';
 import { Admin } from './components/Admin.tsx';
+import { Support } from './components/Support.tsx';
+import { Inventory } from './components/Inventory.tsx';
 import { NotificationContainer } from './components/common/Notification.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin' | 'support' | 'inventory';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -57,6 +60,8 @@ function App() {
         return <WalkIn />;
       case 'kitchen':
         return <Kitchen hotelData={hotelData} />;
+      case 'inventory':
+        return <Inventory hotelData={hotelData} />;
       case 'accounts':
         return <Accounts hotelData={hotelData} />;
       case 'financials':
@@ -67,6 +72,8 @@ function App() {
         return <ChannelManager hotelData={hotelData} />;
       case 'loyalty':
         return <LoyaltyProgram hotelData={hotelData} />;
+      case 'support':
+        return <Support />;
       default:
         return <Dashboard hotelData={hotelData} />;
     }

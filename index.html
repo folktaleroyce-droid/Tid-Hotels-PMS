@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tidé Hotels PMS</title>
 
-    <!-- Tailwind via CDN (fine to keep) -->
+    <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -32,21 +32,59 @@
       };
     </script>
 
-    <!-- Keep XLSX for Financials component which uses the global XLSX object -->
+    <!-- XLSX for Financials component -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <!-- Add Socket.IO client for real-time communication -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
-  }
-}
-</script>
-</head>
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
+      }
+    }
+    </script>
+
+    <!-- LIVE UPDATE CHECKER -->
+    <script>
+      (function() {
+        // Check for updates every 30 seconds
+        setInterval(async () => {
+          try {
+            // Append timestamp to prevent browser caching of the JSON request itself
+            const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
+            if (!response.ok) return;
+            
+            const data = await response.json();
+
+            // Initialize version on first load
+            if (!window.CLIENT_VERSION) {
+              window.CLIENT_VERSION = data.version;
+              console.log('Current Client Version:', window.CLIENT_VERSION);
+            } 
+            // Reload if version mismatch detected
+            else if (window.CLIENT_VERSION !== data.version) {
+              console.log('New version detected:', data.version, '. Reloading...');
+              
+              // clear caches if using a service worker
+              if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                  await registration.unregister();
+                }
+              }
+              
+              window.location.reload();
+            }
+          } catch (err) {
+            // Silent fail on network errors (don't annoy user)
+            console.warn('Update check failed:', err);
+          }
+        }, 30000);
+      })();
+    </script>
+  </head>
 
   <body>
     <div id="root"></div>

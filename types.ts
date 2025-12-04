@@ -1,3 +1,4 @@
+
 import type { Dispatch, SetStateAction } from 'react';
 
 export enum RoomStatus {
@@ -80,6 +81,10 @@ export interface Guest {
   specialRequests?: string;
   loyaltyPoints: number;
   loyaltyTier: LoyaltyTier;
+  // New fields based on OPERA 5 Profile Management
+  company?: string;
+  preferences?: string;
+  vip?: boolean;
 }
 
 export interface Reservation {
@@ -178,6 +183,35 @@ export interface TaxSettings {
     rate: number; // e.g., 7.5 for 7.5%
 }
 
+// --- Inventory Types ---
+export enum InventoryCategory {
+    Housekeeping = 'Housekeeping',
+    FoodAndBeverage = 'F&B',
+}
+
+export interface InventoryItem {
+    id: number;
+    name: string;
+    category: InventoryCategory;
+    quantity: number;
+    unit: string;
+    reorderLevel: number;
+    costPerUnit: number;
+    supplierId?: number;
+    expiryDate?: string; // Primarily for F&B
+    location?: string;
+}
+
+export interface Supplier {
+    id: number;
+    name: string;
+    contactPerson: string;
+    email: string;
+    phone: string;
+    address: string;
+    category: InventoryCategory | 'General';
+}
+
 export interface HotelData {
   rooms: Room[];
   guests: Guest[];
@@ -193,6 +227,10 @@ export interface HotelData {
   taxSettings: TaxSettings;
   stopSell: { [roomType: string]: boolean };
   
+  // Inventory State
+  inventory: InventoryItem[];
+  suppliers: Supplier[];
+
   // Action functions
   checkInGuest: (payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number }) => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => void;
@@ -221,4 +259,12 @@ export interface HotelData {
   moveGuest: (payload: { guestId: number; oldRoomId: number; newRoomId: number }) => void;
   setStopSell: (stopSell: { [key: string]: boolean }) => void;
   setTaxSettings: (taxSettings: TaxSettings) => void;
+  
+  // Inventory Actions
+  addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
+  updateInventoryItem: (item: InventoryItem) => void;
+  deleteInventoryItem: (itemId: number) => void;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
+  updateSupplier: (supplier: Supplier) => void;
+  deleteSupplier: (supplierId: number) => void;
 }

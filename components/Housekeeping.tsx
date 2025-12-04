@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 // FIX: Added file extensions to fix module resolution errors.
 import type { HotelData, Room, RoomStatus } from '../types.ts';
@@ -45,16 +46,15 @@ const RoomCard: React.FC<{ room: Room; onClick: (room: Room) => void; disabled?:
     </div>
 );
 
-const StatusColumn: React.FC<{ title: string, rooms: Room[], onRoomSelect: (room: Room) => void }> = ({ title, rooms, onRoomSelect }) => {
-    const status = rooms.length > 0 ? rooms[0].status : RoomStatusEnum.Vacant; // Bit of a hack to get a theme
-    const theme = ROOM_STATUS_THEME[status] || ROOM_STATUS_THEME[RoomStatusEnum.Vacant];
+const StatusColumn: React.FC<{ title: string, status: RoomStatus, rooms: Room[], onRoomSelect: (room: Room) => void }> = ({ title, status, rooms, onRoomSelect }) => {
+    const theme = ROOM_STATUS_THEME[status];
 
     return (
-        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 flex-1">
-            <div className="flex items-center mb-4">
-                 <span className={`h-3 w-3 rounded-full mr-2`} style={{backgroundColor: theme.fill}}></span>
-                 <h3 className={`font-bold text-lg ${theme.text}`}>{title}</h3>
-                 <span className={`ml-2 text-sm font-bold px-2 py-0.5 rounded-full text-white ${theme.badge}`}>{rooms.length}</span>
+        <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 flex-1 min-w-[250px]">
+            <div className="flex items-center mb-4 pb-2 border-b border-slate-200 dark:border-slate-700">
+                 <span className={`h-4 w-4 rounded-full mr-2 shadow-sm`} style={{backgroundColor: theme.fill}}></span>
+                 <h3 className={`font-bold text-lg flex-1 ${theme.text}`}>{title}</h3>
+                 <span className={`ml-2 text-xs font-bold px-2.5 py-1 rounded-full text-white shadow-sm ${theme.badge}`}>{rooms.length}</span>
             </div>
              <div className="space-y-3 max-h-[calc(100vh-22rem)] overflow-y-auto pr-2">
                 {rooms.length > 0 ? rooms.map(room => (
@@ -65,7 +65,12 @@ const StatusColumn: React.FC<{ title: string, rooms: Room[], onRoomSelect: (room
                         disabled={room.status === RoomStatusEnum.OutOfOrder || room.status === RoomStatusEnum.Occupied}
                     />
                 )) : (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No rooms.</p>
+                    <div className="flex flex-col items-center justify-center py-8 text-slate-400 opacity-60">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                         </svg>
+                        <p className="text-sm">No rooms</p>
+                    </div>
                 )}
              </div>
         </div>
@@ -104,13 +109,30 @@ export const Housekeeping: React.FC<HousekeepingProps> = ({ hotelData }) => {
 
   return (
     <div className="space-y-6">
+       {/* Summary Badges */}
+       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {Object.values(RoomStatusEnum).map(status => {
+                 const count = rooms.filter(r => r.status === status).length;
+                 const theme = ROOM_STATUS_THEME[status];
+                 return (
+                     <div key={status} className={`flex flex-col items-center justify-center p-3 rounded-lg border shadow-sm ${theme.light} ${theme.dark} border-l-4`} style={{borderLeftColor: theme.fill}}>
+                         <div className="flex items-center space-x-2 mb-1">
+                             <div className="h-2.5 w-2.5 rounded-full" style={{backgroundColor: theme.fill}}></div>
+                             <span className={`text-xs font-bold uppercase ${theme.text} opacity-90`}>{status}</span>
+                         </div>
+                         <p className={`text-2xl font-bold ${theme.text}`}>{count}</p>
+                     </div>
+                 )
+            })}
+       </div>
+
        <Card title="Housekeeping Status Board">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <StatusColumn title="Dirty" rooms={categorizedRooms.dirty} onRoomSelect={handleRoomSelect} />
-            <StatusColumn title="Cleaning" rooms={categorizedRooms.cleaning} onRoomSelect={handleRoomSelect} />
-            <StatusColumn title="Vacant" rooms={categorizedRooms.vacant} onRoomSelect={handleRoomSelect} />
-            <StatusColumn title="Occupied" rooms={categorizedRooms.occupied} onRoomSelect={handleRoomSelect} />
-            <StatusColumn title="Out of Order" rooms={categorizedRooms.outOfOrder} onRoomSelect={handleRoomSelect} />
+          <div className="flex flex-col lg:flex-row gap-4 overflow-x-auto pb-4">
+            <StatusColumn title="Dirty" status={RoomStatusEnum.Dirty} rooms={categorizedRooms.dirty} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Cleaning" status={RoomStatusEnum.Cleaning} rooms={categorizedRooms.cleaning} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Vacant" status={RoomStatusEnum.Vacant} rooms={categorizedRooms.vacant} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Occupied" status={RoomStatusEnum.Occupied} rooms={categorizedRooms.occupied} onRoomSelect={handleRoomSelect} />
+            <StatusColumn title="Out of Order" status={RoomStatusEnum.OutOfOrder} rooms={categorizedRooms.outOfOrder} onRoomSelect={handleRoomSelect} />
           </div>
       </Card>
       

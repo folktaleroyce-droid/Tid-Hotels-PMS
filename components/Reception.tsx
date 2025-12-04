@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // FIX: Added file extensions to imports to resolve module errors.
 import { Card } from './common/Card.tsx';
@@ -24,6 +25,9 @@ const BASE_INITIAL_FORM_STATE = {
     roomRate: 0,
     discount: '',
     currency: 'NGN' as 'NGN' | 'USD',
+    company: '',
+    preferences: '',
+    vip: false,
 };
 
 // FIX: Moved createInitialFormState before its use in FormState to prevent a ReferenceError.
@@ -247,6 +251,9 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
             specialRequests: checkInForm.specialRequests,
             loyaltyPoints: 0,
             loyaltyTier: LoyaltyTier.Bronze,
+            company: checkInForm.company,
+            preferences: checkInForm.preferences,
+            vip: checkInForm.vip,
         };
     
         const finalCharge = checkInForm.roomRate - discountAmount;
@@ -328,7 +335,12 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${theme.badge} my-2 inline-block`}>{room.status}</span>
                                     {guest && (
                                         <div className="mt-2 text-xs">
-                                            <p className={`font-semibold ${theme.text}`}>{guest.name}</p>
+                                            <div className="flex items-center space-x-1">
+                                                <p className={`font-semibold ${theme.text}`}>{guest.name}</p>
+                                                {guest.vip && (
+                                                    <span className="bg-yellow-400 text-yellow-900 text-[10px] font-bold px-1 rounded">VIP</span>
+                                                )}
+                                            </div>
                                              <span className={`px-2 py-0.5 mt-1 inline-block text-xs font-semibold rounded-full ${LOYALTY_TIER_THEME[guest.loyaltyTier].bg} ${LOYALTY_TIER_THEME[guest.loyaltyTier].text}`}>
                                                 {guest.loyaltyTier}
                                             </span>
@@ -393,6 +405,21 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                             <input type="text" value={checkInForm.idNumber} onChange={(e) => setCheckInForm({...checkInForm, idNumber: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>
                             {errors.idNumber && <p className="text-red-500 text-xs mt-1">{errors.idNumber}</p>}
                         </div>
+                        
+                        {/* New Profile Fields based on PDF */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Company / Corporate Profile</label>
+                            <input type="text" value={checkInForm.company} onChange={(e) => setCheckInForm({...checkInForm, company: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" placeholder="e.g., Oracle"/>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium mb-1">Guest Preferences</label>
+                            <input type="text" value={checkInForm.preferences} onChange={(e) => setCheckInForm({...checkInForm, preferences: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600" placeholder="e.g., High Floor, Near Elevator"/>
+                        </div>
+                        <div className="flex items-center mt-6">
+                            <input id="vip-check" type="checkbox" checked={checkInForm.vip} onChange={(e) => setCheckInForm({...checkInForm, vip: e.target.checked})} className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"/>
+                            <label htmlFor="vip-check" className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Mark as VIP Guest</label>
+                        </div>
+                        
                          <div className="col-span-full">
                             <label className="block text-sm font-medium mb-1">Address</label>
                             <input type="text" value={checkInForm.address} onChange={(e) => setCheckInForm({...checkInForm, address: e.target.value})} className="w-full p-2 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"/>

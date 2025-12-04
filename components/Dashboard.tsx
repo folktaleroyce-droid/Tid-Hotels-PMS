@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Card } from './common/Card.tsx';
 import type { HotelData, Transaction, Guest } from '../types.ts';
@@ -65,6 +66,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
     
     const todayStr = new Date().toISOString().split('T')[0];
     const todaysArrivals = reservations.filter(r => r.checkInDate === todayStr);
+    const todaysDepartures = guests.filter(g => g.departureDate === todayStr && rooms.some(r => r.guestId === g.id));
+    
     const guestsInHouse = guests.length + todaysArrivals.filter(a => !rooms.some(r => r.guestId && guests.find(g => g.id === r.guestId)?.name === a.guestName)).length;
     
     const availableRooms = rooms.filter(r => r.status === RoomStatus.Vacant).length;
@@ -138,10 +141,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                 </Card>
             </div>
             
-            {/* Accounts & Arrivals Row */}
+            {/* Accounts & Arrivals & Departures Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <Card title="Guest Accounts Overview" className="lg:col-span-2">
-                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                         {guestsWithBalance.length > 0 ? guestsWithBalance.map(({ guest, room, balance, status }) => (
                             <div key={guest.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
                                 <div className="space-y-1">
@@ -165,19 +168,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                         )}
                     </div>
                 </Card>
-                <Card title="Upcoming Arrivals" className="lg:col-span-1">
-                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                        {todaysArrivals.length > 0 ? todaysArrivals.map(res => (
-                            <div key={res.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
-                                <div>
-                                    <p className="font-semibold">{res.guestName}</p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">{res.roomType}</p>
+
+                <div className="space-y-6 lg:col-span-1">
+                    <Card title="Upcoming Arrivals">
+                        <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                            {todaysArrivals.length > 0 ? todaysArrivals.map(res => (
+                                <div key={res.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                                    <div>
+                                        <p className="font-semibold">{res.guestName}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{res.roomType}</p>
+                                    </div>
+                                    <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{res.ota}</span>
                                 </div>
-                                <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{res.ota}</span>
-                            </div>
-                        )) : <p className="text-slate-500 dark:text-slate-400">No arrivals scheduled for today.</p>}
-                    </div>
-                </Card>
+                            )) : <p className="text-slate-500 dark:text-slate-400">No arrivals scheduled for today.</p>}
+                        </div>
+                    </Card>
+
+                     <Card title="Today's Departures">
+                        <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                            {todaysDepartures.length > 0 ? todaysDepartures.map(guest => (
+                                <div key={guest.id} className="flex justify-between items-center p-2 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                                    <div>
+                                        <p className="font-semibold">{guest.name}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Room {guest.roomNumber}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-xs font-medium text-slate-500 block">Check-out</span>
+                                    </div>
+                                </div>
+                            )) : <p className="text-slate-500 dark:text-slate-400">No departures scheduled for today.</p>}
+                        </div>
+                    </Card>
+                </div>
             </div>
         </div>
     );
