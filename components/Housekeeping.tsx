@@ -1,10 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-// FIX: Added file extensions to fix module resolution errors.
 import type { HotelData, Room, RoomStatus } from '../types.ts';
 import { RoomStatus as RoomStatusEnum } from '../types.ts';
 import { ROOM_STATUS_THEME } from '../constants.tsx';
-// FIX: Added file extensions to component imports.
 import { Card } from './common/Card.tsx';
 import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
@@ -23,6 +21,7 @@ const StatusButton: React.FC<{
 
     return (
         <button
+            type="button"
             onClick={() => onClick(status)}
             disabled={isDisabled}
             className={`w-full text-left p-3 my-1 rounded-md transition-colors ${theme.light} ${theme.dark} ${theme.text} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}

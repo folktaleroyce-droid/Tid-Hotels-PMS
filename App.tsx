@@ -20,11 +20,12 @@ import { WalkIn } from './components/WalkIn.tsx';
 import { Admin } from './components/Admin.tsx';
 import { Support } from './components/Support.tsx';
 import { Inventory } from './components/Inventory.tsx';
+import { ProfileManagement } from './components/ProfileManagement.tsx';
 import { NotificationContainer } from './components/common/Notification.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin' | 'support' | 'inventory';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin' | 'support' | 'inventory' | 'profiles';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -48,6 +49,8 @@ function App() {
         return <Dashboard hotelData={hotelData} />;
       case 'reception':
         return <Reception hotelData={hotelData} />;
+      case 'profiles':
+        return <ProfileManagement hotelData={hotelData} />;
       case 'housekeeping':
         return <Housekeeping hotelData={hotelData} />;
       case 'maintenance':

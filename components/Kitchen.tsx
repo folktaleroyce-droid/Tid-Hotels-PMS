@@ -1,7 +1,8 @@
+
 import React from 'react';
-// FIX: Added file extensions to imports to resolve module errors.
-import type { HotelData, Order } from '../types.ts';
+import type { HotelData } from '../types.ts';
 import { Card } from './common/Card.tsx';
+import { Button } from './common/Button.tsx';
 
 interface KitchenProps {
     hotelData: HotelData;
@@ -30,8 +31,24 @@ export const Kitchen: React.FC<KitchenProps> = ({ hotelData }) => {
                                 ))}
                             </ul>
                             <div className="flex space-x-2 mt-4">
-                                {order.status === 'Pending' && <button onClick={() => updateOrderStatus(order.id, 'Preparing')} className="bg-yellow-500 text-white px-3 py-1 rounded">Start Preparing</button>}
-                                {order.status === 'Preparing' && <button onClick={() => updateOrderStatus(order.id, 'Ready')} className="bg-green-500 text-white px-3 py-1 rounded">Mark as Ready</button>}
+                                {order.status === 'Pending' && (
+                                    <Button 
+                                        onClick={() => updateOrderStatus(order.id, 'Preparing')} 
+                                        variant="warning"
+                                        size="sm"
+                                    >
+                                        Start Preparing
+                                    </Button>
+                                )}
+                                {order.status === 'Preparing' && (
+                                    <Button 
+                                        onClick={() => updateOrderStatus(order.id, 'Ready')} 
+                                        variant="success"
+                                        size="sm"
+                                    >
+                                        Mark as Ready
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )) : (

@@ -53,27 +53,29 @@ export const INITIAL_STAFF: Staff[] = [
     { id: 9, name: 'Francis', email: 'francis@tide.com', password: 'Fr@nC1$62!', role: UserRole.Manager },
 ];
 
+// FIX: Added 'isActive: true' to room types to satisfy the RoomType interface.
 export const INITIAL_ROOM_TYPES: RoomType[] = [
-    { id: 1, name: 'Standard Room', rates: { NGN: 45000, USD: 60 }, capacity: 2 },
-    { id: 2, name: 'Deluxe Room', rates: { NGN: 65000, USD: 85 }, capacity: 2 },
-    { id: 3, name: 'Executive Suite', rates: { NGN: 95000, USD: 125 }, capacity: 3 },
-    { id: 4, name: 'Presidential Suite', rates: { NGN: 250000, USD: 330 }, capacity: 4 },
+    { id: 1, name: 'Standard Room', rates: { NGN: 45000, USD: 60 }, capacity: 2, isActive: true },
+    { id: 2, name: 'Deluxe Room', rates: { NGN: 65000, USD: 85 }, capacity: 2, isActive: true },
+    { id: 3, name: 'Executive Suite', rates: { NGN: 95000, USD: 125 }, capacity: 3, isActive: true },
+    { id: 4, name: 'Presidential Suite', rates: { NGN: 250000, USD: 330 }, capacity: 4, isActive: true },
 ];
 
+// FIX: Added 'isActive: true' to initial rooms to satisfy the Room interface.
 export const INITIAL_ROOMS: Room[] = [
-    { id: 101, number: '101', type: 'Standard Room', rate: 45000, status: RoomStatus.Occupied, guestId: 1 },
-    { id: 102, number: '102', type: 'Standard Room', rate: 45000, status: RoomStatus.Vacant },
-    { id: 103, number: '103', type: 'Standard Room', rate: 45000, status: RoomStatus.Dirty },
-    { id: 104, number: '104', type: 'Standard Room', rate: 45000, status: RoomStatus.Cleaning },
-    { id: 105, number: '105', type: 'Standard Room', rate: 45000, status: RoomStatus.OutOfOrder },
-    { id: 201, number: '201', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
-    { id: 202, number: '202', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
-    { id: 203, number: '203', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
-    { id: 204, number: '204', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Occupied, guestId: 2 },
-    { id: 205, number: '205', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant },
-    { id: 301, number: '301', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant },
-    { id: 302, number: '302', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant },
-    { id: 401, number: '401', type: 'Presidential Suite', rate: 250000, status: RoomStatus.Vacant },
+    { id: 101, number: '101', type: 'Standard Room', rate: 45000, status: RoomStatus.Occupied, guestId: 1, isActive: true },
+    { id: 102, number: '102', type: 'Standard Room', rate: 45000, status: RoomStatus.Vacant, isActive: true },
+    { id: 103, number: '103', type: 'Standard Room', rate: 45000, status: RoomStatus.Dirty, isActive: true },
+    { id: 104, number: '104', type: 'Standard Room', rate: 45000, status: RoomStatus.Cleaning, isActive: true },
+    { id: 105, number: '105', type: 'Standard Room', rate: 45000, status: RoomStatus.OutOfOrder, isActive: true },
+    { id: 201, number: '201', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant, isActive: true },
+    { id: 202, number: '202', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant, isActive: true },
+    { id: 203, number: '203', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant, isActive: true },
+    { id: 204, number: '204', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Occupied, guestId: 2, isActive: true },
+    { id: 205, number: '205', type: 'Deluxe Room', rate: 65000, status: RoomStatus.Vacant, isActive: true },
+    { id: 301, number: '301', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant, isActive: true },
+    { id: 302, number: '302', type: 'Executive Suite', rate: 95000, status: RoomStatus.Vacant, isActive: true },
+    { id: 401, number: '401', type: 'Presidential Suite', rate: 250000, status: RoomStatus.Vacant, isActive: true },
 ];
 
 export const INITIAL_RESERVATIONS: Reservation[] = [

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 // FIX: Added file extension to App import.
@@ -15,11 +16,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ThemeProvider>
-      <HotelDataProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <HotelDataProvider>
           <App />
-        </AuthProvider>
-      </HotelDataProvider>
+        </HotelDataProvider>
+      </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

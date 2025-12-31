@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { SyncLogEntry } from '../../types.ts';
 
@@ -40,6 +41,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({ notification, onC
                 <p className="text-sm font-medium">{notification.message}</p>
             </div>
             <button
+                type="button"
                 onClick={() => onClose(notification.id)}
                 className="ml-4 -mr-1 -mt-1 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-white"
             >

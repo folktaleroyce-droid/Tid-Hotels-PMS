@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Card } from './common/Card.tsx';
-import type { HotelData, Transaction, Guest } from '../types.ts';
+import type { HotelData, Transaction, Guest, AuditLogEntry } from '../types.ts';
 import { RoomStatus, PaymentStatus } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -36,8 +36,27 @@ const getPaymentStatus = (balance: number, rate: number): PaymentStatus => {
     return PaymentStatus.Pending;
 };
 
+const AuditActivityItem: React.FC<{ entry: AuditLogEntry }> = ({ entry }) => (
+    <div className="flex items-start space-x-3 p-3 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 mb-2">
+        <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                {entry.userName.slice(0, 2).toUpperCase()}
+            </span>
+        </div>
+        <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {entry.userName} <span className="text-xs font-normal text-slate-500">• {entry.userRole}</span>
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">{entry.details}</p>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase font-mono">
+                {new Date(entry.timestamp).toLocaleTimeString()}
+            </p>
+        </div>
+    </div>
+);
+
 export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
-    const { rooms, guests, transactions, reservations } = hotelData;
+    const { rooms, guests, transactions, reservations, auditLog } = hotelData;
     const { theme } = useTheme();
     const isDarkMode = theme === 'dark';
 
@@ -93,6 +112,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
         return { date: dateStr.slice(5), revenue };
     }).reverse();
 
+    const recentAuditActivity = useMemo(() => auditLog.slice(0, 8), [auditLog]);
+
     return (
         <div className="space-y-6">
             {/* KPI Row */}
@@ -103,45 +124,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                 <StatCard title="Available Rooms" value={availableRooms} icon={<KeyIcon />} />
             </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Room Status Overview">
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={roomStatusData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
-                            <XAxis dataKey="name" tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} fontSize={12} angle={-25} textAnchor="end" height={50} />
-                            <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                                    borderColor: isDarkMode ? '#374151' : '#E5E7EB'
-                                }}
-                            />
-                            <Bar dataKey="count" name="Rooms" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Card>
-                <Card title="Revenue (Last 7 Days)">
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
-                            <XAxis dataKey="date" tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} />
-                            <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} tickFormatter={(value) => `₦${Number(value) / 1000}k`} />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                                    borderColor: isDarkMode ? '#374151' : '#E5E7EB'
-                                }}
-                                formatter={(value: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(value)}
-                            />
-                            <Legend />
-                            <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} name="Revenue" />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </Card>
+            {/* Main Grid: Charts & Audit */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card title="Room Status Overview">
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={roomStatusData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
+                                <XAxis dataKey="name" tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} fontSize={12} angle={-25} textAnchor="end" height={50} />
+                                <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                                        borderColor: isDarkMode ? '#374151' : '#E5E7EB'
+                                    }}
+                                />
+                                <Bar dataKey="count" name="Rooms" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </Card>
+                    <Card title="Revenue (Last 7 Days)">
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#E5E7EB'} />
+                                <XAxis dataKey="date" tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} />
+                                <YAxis tick={{ fill: isDarkMode ? '#D1D5DB' : '#4B5563' }} tickFormatter={(value) => `₦${Number(value) / 1000}k`} />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                                        borderColor: isDarkMode ? '#374151' : '#E5E7EB'
+                                    }}
+                                    formatter={(value: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(value)}
+                                />
+                                <Legend />
+                                <Line type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={2} name="Revenue" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </Card>
+                </div>
+
+                <div className="xl:col-span-1">
+                    <Card title="Recent Activity" className="h-full">
+                        <div className="overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+                            {recentAuditActivity.length > 0 ? recentAuditActivity.map(entry => (
+                                <AuditActivityItem key={entry.id} entry={entry} />
+                            )) : (
+                                <p className="text-center py-8 text-slate-500 italic">No recent activity.</p>
+                            )}
+                        </div>
+                        {auditLog.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                <p className="text-xs text-slate-400 text-center uppercase font-bold tracking-widest">
+                                    Full audit available in Admin
+                                </p>
+                            </div>
+                        )}
+                    </Card>
+                </div>
             </div>
             
-            {/* Accounts & Arrivals & Departures Row */}
+            {/* Bottom Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <Card title="Guest Accounts Overview" className="lg:col-span-2">
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -210,4 +252,3 @@ const CurrencyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-
 const OccupancyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>;
 const KeyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H5v-2H3v-2H1v-4a6 6 0 016-6h4a6 6 0 016 6z" /></svg>;
-const SyncIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>;

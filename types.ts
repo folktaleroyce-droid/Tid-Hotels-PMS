@@ -35,8 +35,22 @@ export interface Staff {
     id: number;
     name: string;
     email: string;
-    password: string; // In a real app, this would be a hash
+    password: string; 
     role: UserRole;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  timestamp: string;
+  userId: number;
+  userName: string;
+  userRole: UserRole;
+  action: string;
+  entityType: string;
+  entityId?: string | number;
+  details: string;
+  previousValue?: string;
+  newValue?: string;
 }
 
 export interface Room {
@@ -46,6 +60,7 @@ export interface Room {
   rate: number;
   status: RoomStatus;
   guestId?: number;
+  isActive: boolean; // Admin Control
 }
 
 export interface RoomType {
@@ -56,6 +71,36 @@ export interface RoomType {
     USD: number;
   };
   capacity: number;
+  isActive: boolean; // Admin Control
+}
+
+export interface RatePlan {
+  id: number;
+  name: string;
+  roomTypeId: number;
+  rates: {
+    NGN: number;
+    USD: number;
+  };
+  isActive: boolean;
+  description: string;
+}
+
+export interface DiscountRule {
+  id: number;
+  name: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  isActive: boolean;
+  applicableRoles: UserRole[];
+}
+
+export interface TaxCharge {
+  id: number;
+  name: string;
+  rate: number;
+  isInclusive: boolean;
+  isActive: boolean;
 }
 
 export interface Guest {
@@ -75,13 +120,12 @@ export interface Guest {
   children?: number;
   roomNumber: string;
   roomType: string;
-  bookingSource: string; // Formerly 'ota'
+  bookingSource: string;
   currency: 'NGN' | 'USD';
   discount?: number;
   specialRequests?: string;
   loyaltyPoints: number;
   loyaltyTier: LoyaltyTier;
-  // New fields based on OPERA 5 Profile Management
   company?: string;
   preferences?: string;
   vip?: boolean;
@@ -102,14 +146,14 @@ export interface Transaction {
   id: number;
   guestId: number;
   description: string;
-  amount: number; // positive for charges, negative for payments
+  amount: number;
   date: string;
 }
 
 export interface LoyaltyTransaction {
     id: number;
     guestId: number;
-    points: number; // positive for earned, negative for redeemed
+    points: number;
     description: string;
     date: string;
 }
@@ -117,8 +161,8 @@ export interface LoyaltyTransaction {
 export interface WalkInTransaction {
   id: number;
   service: string;
-  serviceDetails?: string; // For 'Other'
-  amount: number; // Gross Amount / Subtotal
+  serviceDetails?: string;
+  amount: number;
   discount: number;
   tax: number;
   amountPaid: number;
@@ -147,7 +191,7 @@ export interface Employee {
   phone: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
-  profilePicture?: string; // base64 string
+  profilePicture?: string;
 }
 
 export interface SyncLogEntry {
@@ -180,10 +224,9 @@ export interface MaintenanceRequest {
 
 export interface TaxSettings {
     isEnabled: boolean;
-    rate: number; // e.g., 7.5 for 7.5%
+    rate: number;
 }
 
-// --- Inventory Types ---
 export enum InventoryCategory {
     Housekeeping = 'Housekeeping',
     FoodAndBeverage = 'F&B',
@@ -198,7 +241,7 @@ export interface InventoryItem {
     reorderLevel: number;
     costPerUnit: number;
     supplierId?: number;
-    expiryDate?: string; // Primarily for F&B
+    expiryDate?: string;
     location?: string;
 }
 
@@ -222,12 +265,14 @@ export interface HotelData {
   orders: Order[];
   employees: Employee[];
   syncLog: SyncLogEntry[];
+  auditLog: AuditLogEntry[];
   maintenanceRequests: MaintenanceRequest[];
   roomTypes: RoomType[];
   taxSettings: TaxSettings;
+  taxCharges: TaxCharge[];
+  ratePlans: RatePlan[];
+  discountRules: DiscountRule[];
   stopSell: { [roomType: string]: boolean };
-  
-  // Inventory State
   inventory: InventoryItem[];
   suppliers: Supplier[];
 
@@ -251,6 +296,7 @@ export interface HotelData {
   updateRoomType: (roomType: RoomType) => void;
   deleteRoomType: (roomTypeId: number) => void;
   addRoom: (room: { number: string; type: string }) => void;
+  updateRoom: (room: Room) => void;
   deleteRoom: (roomId: number) => void;
   clearAllData: () => void;
   updateOrderStatus: (orderId: number, status: Order['status']) => void;
@@ -260,6 +306,17 @@ export interface HotelData {
   setStopSell: (stopSell: { [key: string]: boolean }) => void;
   setTaxSettings: (taxSettings: TaxSettings) => void;
   
+  // Enterprise Admin Actions
+  addRatePlan: (plan: Omit<RatePlan, 'id'>) => void;
+  updateRatePlan: (plan: RatePlan) => void;
+  deleteRatePlan: (id: number) => void;
+  addDiscountRule: (rule: Omit<DiscountRule, 'id'>) => void;
+  updateDiscountRule: (rule: DiscountRule) => void;
+  deleteDiscountRule: (id: number) => void;
+  addTaxCharge: (charge: Omit<TaxCharge, 'id'>) => void;
+  updateTaxCharge: (charge: TaxCharge) => void;
+  deleteTaxCharge: (id: number) => void;
+
   // Inventory Actions
   addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
   updateInventoryItem: (item: InventoryItem) => void;
