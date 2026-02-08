@@ -397,22 +397,52 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
 
             {/* MODAL: PORTFOLIO */}
             <Modal isOpen={isPortfolioModalOpen} onClose={() => setIsPortfolioModalOpen(false)} title={`Terminal Folio: ${selectedGuest?.name}`}>
-                <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl">
+                <div className="space-y-8 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {/* Header Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="p-5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl">
                             <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Active unit</p>
                             <p className="text-xl font-black text-indigo-600 uppercase">UNIT {selectedRoom?.number}</p>
-                            <button onClick={() => setIsMoveModalOpen(true)} className="mt-3 text-[8px] font-black uppercase text-indigo-600 hover:underline flex items-center gap-1">Relocate Resident</button>
+                            <button onClick={() => setIsMoveModalOpen(true)} className="mt-2 text-[8px] font-black uppercase text-indigo-600 hover:underline flex items-center gap-1">Relocate Resident</button>
                         </div>
-                        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl text-center">
+                        <div className="p-5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl text-center">
                             <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Arrival logic</p>
-                            <p className="text-xl font-black uppercase">{selectedGuest?.arrivalDate}</p>
+                            <p className="text-lg font-black uppercase">{selectedGuest?.arrivalDate}</p>
                         </div>
-                        <div className="p-6 bg-slate-950 dark:bg-black border-2 border-slate-800 rounded-3xl text-right">
+                        <div className="p-5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl text-center">
+                            <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Loyalty Rank</p>
+                            {selectedGuest && (
+                                <div className="flex flex-col items-center">
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${LOYALTY_TIER_THEME[selectedGuest.loyaltyTier].bg} ${LOYALTY_TIER_THEME[selectedGuest.loyaltyTier].text}`}>
+                                        {selectedGuest.loyaltyTier}
+                                    </span>
+                                    <span className="text-[10px] font-black text-indigo-600 mt-1">{selectedGuest.loyaltyPoints} PTS</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-5 bg-slate-950 dark:bg-black border-2 border-slate-800 rounded-3xl text-right">
                             <p className="text-[9px] font-black uppercase text-slate-500 mb-1 tracking-widest">Net Outstandings</p>
                             <p className="text-2xl font-black text-green-500 font-mono tracking-tighter">₦{selectedGuest ? calculateBalance(selectedGuest.id).toLocaleString() : 0}</p>
                         </div>
                     </div>
+
+                    {/* Operational Intelligence (Preferences & Requests) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-6 bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl">
+                            <h4 className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-500 mb-3 tracking-[0.2em]">Operational Preferences</h4>
+                            <p className="text-xs italic font-medium text-slate-700 dark:text-slate-300">
+                                {selectedGuest?.preferences || 'No specific operational preferences archived.'}
+                            </p>
+                        </div>
+                        <div className="p-6 bg-indigo-50 dark:bg-indigo-900/10 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-3xl">
+                            <h4 className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 mb-3 tracking-[0.2em]">Manifest Special Requests</h4>
+                            <p className="text-xs italic font-medium text-slate-700 dark:text-slate-300">
+                                {selectedGuest?.specialRequests || 'No active special requirements detected.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Fiscal Chronology */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-900 pb-3">
                             <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.2em]">Fiscal Chronology</h4>
@@ -431,10 +461,14 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                                             <td className={`p-4 text-right font-black font-mono ${t.amount < 0 ? 'text-green-500' : 'text-slate-900 dark:text-white'}`}>{t.amount.toLocaleString()}</td>
                                         </tr>
                                     ))}
+                                    {selectedGuest && transactions.filter(t => t.guestId === selectedGuest.id).length === 0 && (
+                                        <tr><td colSpan={3} className="p-10 text-center text-[10px] font-black uppercase text-slate-300 italic">No fiscal entries detected</td></tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                    
                     <div className="pt-6 flex justify-end gap-3 border-t-2 border-slate-100 dark:border-slate-900">
                          <Button variant="secondary" onClick={() => setIsPortfolioModalOpen(false)} className="uppercase font-black text-[10px] px-8">Dismiss</Button>
                          <Button variant="danger" onClick={() => { setIsPortfolioModalOpen(false); setIsCheckoutModalOpen(true); setCheckoutForm({ amountPaid: selectedGuest ? calculateBalance(selectedGuest.id).toString() : '0', method: 'Cash' }); }} className="uppercase font-black text-[10px] px-8">Initialize Release</Button>
