@@ -48,6 +48,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
         ];
     }, [guests]);
 
+    const roomStatusData = useMemo(() => {
+        return Object.values(RoomStatus).map(s => ({
+            name: s,
+            count: rooms.filter(r => r.status === s).length
+        }));
+    }, [rooms]);
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -59,15 +66,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <Card title="Infrastructure Load" className="xl:col-span-2">
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={Object.values(RoomStatus).map(s => ({ name: s, count: rooms.filter(r => r.status === s).length }))}>
-                                <XAxis dataKey="name" fontSize={8} axisLine={false} tickLine={false} tick={{fontWeight: 'black', fill: '#64748b'}} />
+                    <div className="w-full h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                            <BarChart data={roomStatusData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <XAxis 
+                                    dataKey="name" 
+                                    fontSize={8} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontWeight: 'black', fill: '#64748b'}} 
+                                />
                                 <YAxis hide />
-                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                <Tooltip 
+                                    cursor={{fill: 'transparent'}} 
+                                    contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} 
+                                />
                                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                                    {Object.values(RoomStatus).map((s, idx) => (
-                                        <Cell key={`cell-${idx}`} fill={ROOM_STATUS_THEME[s as RoomStatus].fill} />
+                                    {roomStatusData.map((entry, idx) => (
+                                        <Cell key={`cell-${idx}`} fill={ROOM_STATUS_THEME[entry.name as RoomStatus].fill} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -76,16 +92,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ hotelData }) => {
                 </Card>
 
                 <Card title="Market Segmentation">
-                    <div className="h-[300px] flex flex-col justify-center">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie data={segmentationData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                    {segmentationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+                    <div className="h-[300px] w-full flex flex-col justify-center items-center">
+                        <div className="w-full h-[220px]">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+                                <PieChart>
+                                    <Pie 
+                                        data={segmentationData} 
+                                        innerRadius={60} 
+                                        outerRadius={80} 
+                                        paddingAngle={5} 
+                                        dataKey="value"
+                                        animationDuration={1000}
+                                    >
+                                        {segmentationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4 w-full text-center">
                             {segmentationData.map(s => (
                                 <div key={s.name}>
                                     <p className="text-[10px] font-black uppercase text-slate-400">{s.name}</p>

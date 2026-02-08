@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tidé Hotels PMS</title>
+    <title>Smartwave Enterprise HUB</title>
 
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +13,9 @@
         theme: {
           extend: {
             colors: {
+              slate: {
+                950: '#020617',
+              },
               primary: {
                 '50': '#eff6ff',
                 '100': '#dbeafe',
@@ -49,46 +52,37 @@
     <!-- LIVE UPDATE CHECKER -->
     <script>
       (function() {
-        // Check for updates every 30 seconds
         setInterval(async () => {
           try {
-            // Append timestamp to prevent browser caching of the JSON request itself
             const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
             if (!response.ok) return;
-            
             const data = await response.json();
-
-            // Initialize version on first load
             if (!window.CLIENT_VERSION) {
               window.CLIENT_VERSION = data.version;
-              console.log('Current Client Version:', window.CLIENT_VERSION);
-            } 
-            // Reload if version mismatch detected
-            else if (window.CLIENT_VERSION !== data.version) {
-              console.log('New version detected:', data.version, '. Reloading...');
-              
-              // clear caches if using a service worker
+            } else if (window.CLIENT_VERSION !== data.version) {
               if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (let registration of registrations) {
                   await registration.unregister();
                 }
               }
-              
               window.location.reload();
             }
-          } catch (err) {
-            // Silent fail on network errors (don't annoy user)
-            console.warn('Update check failed:', err);
-          }
+          } catch (err) {}
         }, 30000);
       })();
     </script>
+    <style>
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      .dark ::-webkit-scrollbar-thumb { background: #334155; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: This loads your React app -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

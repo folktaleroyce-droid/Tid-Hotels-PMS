@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { Button } from './common/Button.tsx';
@@ -23,15 +22,15 @@ export const LoginScreen: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center h-screen bg-slate-200 dark:bg-slate-900">
-            <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
+        <div className="flex items-center justify-center h-screen bg-slate-200 dark:bg-slate-900 font-sans">
+            <div className="w-full max-w-md p-10 space-y-8 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Tidé Hotels PMS</h1>
-                    <p className="mt-2 text-slate-600 dark:text-slate-400">Staff Login</p>
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Smartwave Enterprise HUB</h1>
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">Authoritative Staff Authentication</p>
                 </div>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Username</label>
+                        <label htmlFor="username" className="block text-[10px] font-black uppercase text-slate-500 mb-2 ml-1">Terminal ID (Username)</label>
                         <div className="mt-1">
                             <input
                                 id="username"
@@ -41,12 +40,12 @@ export const LoginScreen: React.FC = () => {
                                 required
                                 value={username}
                                 onChange={e => setUsername(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-4 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
                             />
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="password"  className="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                        <label htmlFor="password"  className="block text-[10px] font-black uppercase text-slate-500 mb-2 ml-1">Access Protocol (Password)</label>
                         <div className="mt-1">
                             <input
                                 id="password"
@@ -56,23 +55,26 @@ export const LoginScreen: React.FC = () => {
                                 required
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                className="w-full px-4 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono"
                             />
                         </div>
                     </div>
 
-                    {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                    {error && <p className="text-xs font-black uppercase text-red-600 text-center animate-pulse">{error}</p>}
 
                     <div>
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full"
+                            className="w-full py-4 uppercase font-black tracking-widest shadow-xl shadow-indigo-600/20"
                         >
-                            {loading ? 'Signing In...' : 'Sign In'}
+                            {loading ? 'Validating...' : 'Initialize Session'}
                         </Button>
                     </div>
                 </form>
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-900 text-center">
+                    <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Industrial Node Connectivity Active</p>
+                </div>
             </div>
         </div>
     );

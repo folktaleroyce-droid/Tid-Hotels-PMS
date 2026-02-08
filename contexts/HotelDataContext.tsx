@@ -1,8 +1,7 @@
-
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, AuditLogEntry, MaintenanceRequest, RoomType, TaxSettings, InventoryItem, Supplier, RatePlan, DiscountRule, TaxCharge, CityLedgerAccount, CityLedgerTransaction, InventoryMovement, BaseEntity, PropertyInfo, Staff, Branch, Role, ModulePermissions, CateringAsset, Event, SystemSecuritySettings, SystemIntegrationSettings, Expense, MenuItem, SecurityIncident } from '../types.ts';
 import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS, INITIAL_STAFF, MENU_ITEMS as STATIC_MENU } from '../constants.tsx';
-import { RoomStatus as RoomStatusEnum, HousekeepingStatus, UserRole, MaintenanceStatus, PaymentStatus, InventoryCategory } from '../types.ts';
+import { RoomStatus as RoomStatusEnum, HousekeepingStatus, UserRole, MaintenanceStatus, PaymentStatus, InventoryCategory, LoyaltyTier } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 
 type HotelState = {
@@ -60,11 +59,11 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const INITIAL_STATE: HotelState = {
         propertyInfo: {
-            name: 'Tidé Hotels & Resorts',
-            address: 'Corporate Headquarters, Victoria Island, Lagos',
-            phone: '+234 800 TIDE PMS',
-            email: 'operations@tidehotels.com',
-            website: 'www.tidehotels.com',
+            name: 'Smartwave Enterprise HUB',
+            address: 'Industrial District Node, Lagos',
+            phone: '+234 800 SMARTWAVE',
+            email: 'ops@smartwavehub.com',
+            website: 'www.smartwavehub.com',
             currency: 'NGN',
             timezone: 'Africa/Lagos',
             language: 'English',
@@ -85,8 +84,8 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
           accountingSoftware: 'Quickbooks'
         },
         branches: [
-          { id: 'main', name: 'Lagos Headquarters', location: 'Victoria Island', status: 'Active' },
-          { id: 'abuja', name: 'Tidé Abuja', location: 'Maitama', status: 'Active' }
+          { id: 'main', name: 'Smartwave HQ', location: 'Lagos', status: 'Active' },
+          { id: 'branch-2', name: 'Smartwave Node B', location: 'Abuja', status: 'Active' }
         ],
         customRoles: [],
         systemStatus: 'Active',
@@ -102,8 +101,11 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             loyalty: true
         },
         staff: INITIAL_STAFF.map(s => ({ ...s, branchId: 'main', status: 'Active', department: 'Management', ...createMetadata('SYSTEM') })),
-        rooms: INITIAL_ROOMS.map(r => ({ ...r, floor: Math.floor(parseInt(r.number) / 100), housekeepingStatus: HousekeepingStatus.Clean, isActive: true, ...createMetadata('SYSTEM') })) as Room[],
-        guests: [],
+        rooms: INITIAL_ROOMS.map(r => ({ ...r, floor: Math.floor(parseInt(r.number) / 100), housekeepingStatus: HousekeepingStatus.Clean, isActive: true, statusNotes: '', ...createMetadata('SYSTEM') })) as Room[],
+        guests: [
+            { id: 1, name: 'Initial Resident A', email: 'guest.a@example.com', phone: '08011111111', arrivalDate: '2023-10-01', departureDate: '2023-10-15', roomNumber: '101', roomType: 'Standard Room', idType: 'NIN', idNumber: '123456789', adults: 1, loyaltyPoints: 100, loyaltyTier: LoyaltyTier.Silver, bookingSource: 'Direct', currency: 'NGN', ...createMetadata('SYSTEM') } as Guest,
+            { id: 2, name: 'Initial Resident B', email: 'guest.b@example.com', phone: '08022222222', arrivalDate: '2023-10-05', departureDate: '2023-10-10', roomNumber: '204', roomType: 'Deluxe Room', idType: 'Passport', idNumber: 'A1234567', adults: 2, loyaltyPoints: 50, loyaltyTier: LoyaltyTier.Bronze, bookingSource: 'Booking.com', currency: 'NGN', ...createMetadata('SYSTEM') } as Guest,
+        ],
         reservations: INITIAL_RESERVATIONS.map(r => ({ ...r, status: 'Confirmed', paymentStatus: PaymentStatus.Pending, ...createMetadata('SYSTEM') })) as Reservation[],
         transactions: [],
         cityLedgerAccounts: [
@@ -139,7 +141,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const [state, setState] = useState<HotelState>(() => {
         try {
-            const savedState = localStorage.getItem('tide_pms_prod_v4');
+            const savedState = localStorage.getItem('smartwave_pms_prod_v4');
             return savedState ? JSON.parse(savedState) : INITIAL_STATE;
         } catch (error) {
             return INITIAL_STATE;
@@ -154,7 +156,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('tide_pms_prod_v4', JSON.stringify(state));
+        localStorage.setItem('smartwave_pms_prod_v4', JSON.stringify(state));
     }, [state]);
 
     const logAudit = (action: string, entityType: string, entityId?: string | number, details: string = '') => {
@@ -262,10 +264,13 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             addSyncLogEntry(`Reservation #${id} for ${res.guestName} Approved`, 'success');
         },
         addSyncLogEntry,
-        updateRoomStatus: (id, status, guestId) => {
+        updateRoomStatus: (id, status, guestId, notes) => {
             const room = state.rooms.find(r => r.id === id);
-            setState(s => ({ ...s, rooms: s.rooms.map(r => r.id === id ? { ...r, status, guestId, updatedAt: new Date().toISOString() } : r) }));
-            logAudit('INFRASTRUCTURE_STATE_CHANGE', 'Room', room?.number || id, `Unit status set to ${status}`);
+            setState(s => ({ 
+                ...s, 
+                rooms: s.rooms.map(r => r.id === id ? { ...r, status, guestId, statusNotes: notes || r.statusNotes, updatedAt: new Date().toISOString() } : r) 
+            }));
+            logAudit('INFRASTRUCTURE_STATE_CHANGE', 'Room', room?.number || id, `Unit status set to ${status}. Briefing: ${notes || 'No briefing recorded'}`);
         },
         updateHousekeepingStatus: (id, status) => {
             const room = state.rooms.find(r => r.id === id);
@@ -340,6 +345,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
                     status: RoomStatusEnum.Vacant, 
                     housekeepingStatus: HousekeepingStatus.Clean, 
                     isActive: true, 
+                    statusNotes: '',
                     ...createMetadata(currentUser?.name || 'SYSTEM') 
                 } as Room] 
             }));
@@ -347,7 +353,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         },
         updateRoom: (r) => setState(s => ({ ...s, rooms: s.rooms.map(room => room.id === r.id ? r : room) })),
         deleteRoom: (id) => setState(s => ({ ...s, rooms: s.rooms.filter(r => r.id !== id) })),
-        clearAllData: () => { localStorage.removeItem('tide_pms_prod_v4'); window.location.reload(); },
+        clearAllData: () => { localStorage.removeItem('smartwave_pms_prod_v4'); window.location.reload(); },
         addLoyaltyPoints: (id, pts, desc) => setState(s => ({ ...s, guests: s.guests.map(g => g.id === id ? { ...g, loyaltyPoints: g.loyaltyPoints + pts } : g), loyaltyTransactions: [...s.loyaltyTransactions, { id: Date.now(), guestId: id, points: pts, description: desc, date: new Date().toISOString().split('T')[0] }] })),
         redeemLoyaltyPoints: async (id, pts) => { 
             const g = state.guests.find(g => g.id === id);

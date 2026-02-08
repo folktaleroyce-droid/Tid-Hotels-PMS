@@ -42,8 +42,8 @@ export const PrintableGuestDetails: React.FC<PrintableGuestDetailsProps> = ({ gu
             </style>
             <div className="printable-content">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900">Tidé Hotels Guest Registration</h2>
-                    <p className="text-sm text-slate-500">Thank you for choosing to stay with us.</p>
+                    <h2 className="text-2xl font-black uppercase text-slate-900 tracking-tighter">Smartwave Guest Registration</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">Industrial Residency Protocol Registry</p>
                 </div>
                 <div className="space-y-4">
                     <DetailRow label="Full Name" value={guest.name} />
@@ -64,16 +64,16 @@ export const PrintableGuestDetails: React.FC<PrintableGuestDetailsProps> = ({ gu
                     <DetailRow label="Special Requests" value={guest.specialRequests} />
                 </div>
                 <div className="mt-8">
-                    <p className="text-xs text-slate-500">
-                        I agree to abide by the hotel rules and regulations and confirm that the above information is correct. I am responsible for all charges incurred during my stay.
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">
+                        I agree to abide by the Smartwave HUB rules and regulations and confirm that the above information is correct. I am responsible for all charges incurred during my residency.
                     </p>
-                    <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-300">
-                         <p>Guest Signature: _________________________________________</p>
+                    <div className="mt-12 pt-8 border-t-2 border-dashed border-slate-300">
+                         <p className="text-xs font-black uppercase">Resident Signature: _________________________________________</p>
                     </div>
                 </div>
             </div>
              <div className="no-print flex justify-end mt-6">
-                <Button onClick={handlePrint}>Print</Button>
+                <Button onClick={handlePrint} className="uppercase font-black text-xs px-8 py-3">Print Registration Protocol</Button>
             </div>
         </div>
     );

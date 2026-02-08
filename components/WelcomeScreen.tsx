@@ -22,10 +22,10 @@ export const WelcomeScreen: React.FC = () => {
       </style>
       <div className="flex items-center justify-center h-screen bg-slate-900">
         <div className="text-center animate-fade-in-scale-up">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-wider">
-            Tidè Hotels and Resorts
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-wider uppercase">
+            Smartwave Enterprise HUB
           </h1>
-          <p className="text-slate-400 mt-4 text-lg">Property Management System</p>
+          <p className="text-slate-400 mt-4 text-lg font-black uppercase tracking-widest">Property Management System</p>
         </div>
       </div>
     </>

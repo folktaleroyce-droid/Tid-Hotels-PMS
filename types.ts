@@ -155,6 +155,7 @@ export interface Room extends BaseEntity {
   status: RoomStatus;
   housekeepingStatus: HousekeepingStatus;
   maintenanceNotes?: string;
+  statusNotes?: string;
   guestId?: number;
   isActive: boolean;
 }
@@ -465,7 +466,7 @@ export interface HotelData {
   checkInGuest: (payload: { guest: Omit<Guest, keyof BaseEntity | 'id'>, roomId: number, charge: Omit<Transaction, keyof BaseEntity | 'id' | 'guestId'>, tax?: Omit<Transaction, keyof BaseEntity | 'id' | 'guestId'>, reservationId?: number }) => void;
   checkOutGuest: (payload: { roomId: number, guestId: number, reservationId?: number, payment?: Omit<Transaction, keyof BaseEntity | 'id' | 'guestId'> }) => void;
   addOrder: (order: Omit<Order, keyof BaseEntity | 'id'>) => void;
-  updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number) => void;
+  updateRoomStatus: (roomId: number, status: RoomStatus, guestId?: number, notes?: string) => void;
   updateHousekeepingStatus: (roomId: number, status: HousekeepingStatus) => void;
   addTransaction: (transaction: Omit<Transaction, keyof BaseEntity | 'id'>) => void;
   addWalkInTransaction: (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => void;
