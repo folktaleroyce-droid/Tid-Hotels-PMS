@@ -24,8 +24,11 @@ import { ProfileManagement } from './components/ProfileManagement.tsx';
 import { NotificationContainer } from './components/common/Notification.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
+import { Settings } from './components/Settings.tsx';
+import { SuperAdminControlCenter } from './components/SuperAdminControlCenter.tsx';
+import { CateringAssetBoard } from './components/CateringAssetBoard.tsx';
 
-type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin' | 'support' | 'inventory' | 'profiles';
+type View = 'dashboard' | 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'accounts' | 'people-and-culture' | 'channel-manager' | 'maintenance' | 'financials' | 'loyalty' | 'walk-in' | 'admin' | 'support' | 'inventory' | 'profiles' | 'settings' | 'super-admin' | 'catering';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -37,11 +40,10 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcomeScreen(false);
-    }, 3000); // Display welcome screen for 3 seconds
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
-
 
   const renderView = () => {
     switch (currentView) {
@@ -65,6 +67,8 @@ function App() {
         return <Kitchen hotelData={hotelData} />;
       case 'inventory':
         return <Inventory hotelData={hotelData} />;
+      case 'catering':
+        return <CateringAssetBoard hotelData={hotelData} />;
       case 'accounts':
         return <Accounts hotelData={hotelData} />;
       case 'financials':
@@ -77,49 +81,36 @@ function App() {
         return <LoyaltyProgram hotelData={hotelData} />;
       case 'support':
         return <Support />;
+      case 'settings':
+        return <Settings />;
+      case 'super-admin':
+        return <SuperAdminControlCenter hotelData={hotelData} />;
       default:
         return <Dashboard hotelData={hotelData} />;
     }
   };
   
   if (loading) {
-    // A simple loading state while checking auth status
     return (
         <div className="flex items-center justify-center h-screen bg-slate-900">
-            <p className="text-white text-lg">Loading Application...</p>
+            <p className="text-white text-lg font-bold">Initializing Enterprise Environment...</p>
         </div>
     );
   }
 
   if (!currentUser) {
-    // If not logged in, show login screen (after welcome screen)
-    if (showWelcomeScreen) {
-      return <WelcomeScreen />;
-    }
+    if (showWelcomeScreen) return <WelcomeScreen />;
     return <LoginScreen />;
   }
 
-  if (showWelcomeScreen) {
-    return <WelcomeScreen />;
-  }
+  if (showWelcomeScreen) return <WelcomeScreen />;
 
   return (
     <>
        <style>
         {`
-          @keyframes fadeInRight {
-            from {
-              opacity: 0;
-              transform: translateX(100%);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
-          }
-          .animate-fade-in-right {
-            animation: fadeInRight 0.5s ease-out forwards;
-          }
+          @keyframes fadeInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+          .animate-fade-in-right { animation: fadeInRight 0.5s ease-out forwards; }
         `}
       </style>
       <div className={`flex h-screen bg-slate-200 dark:bg-slate-900 text-slate-900 dark:text-slate-200 ${theme}`}>

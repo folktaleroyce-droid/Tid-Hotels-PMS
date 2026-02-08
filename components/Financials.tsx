@@ -1,28 +1,29 @@
+
 import React, { useState, useMemo } from 'react';
-import type { HotelData } from '../types.ts';
+import type { HotelData, Expense } from '../types.ts';
 import { Card } from './common/Card.tsx';
 import { Button } from './common/Button.tsx';
 import { Modal } from './common/Modal.tsx';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { UserRole } from '../types.ts';
 
-// Declare the XLSX library which is loaded from a CDN script in index.html
 declare const XLSX: any;
-
 
 interface FinancialsProps {
     hotelData: HotelData;
 }
 
 type UnifiedTransaction = {
-    id: string; // e.g., 'inhouse-1', 'walkin-1'
+    id: string;
     date: string;
-    source: 'In-house' | 'Walk-in';
+    source: 'In-house' | 'Walk-in' | 'Expenditure';
     guestName: string;
     description: string;
     charge: number;
     payment: number;
     tax: number;
+    expense: number;
 };
-
 
 const today = new Date().toISOString().split('T')[0];
 const thirtyDaysAgo = new Date();
@@ -30,289 +31,197 @@ thirtyDaysAgo.setDate(new Date().getDate() - 30);
 const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
 export const Financials: React.FC<FinancialsProps> = ({ hotelData }) => {
-    const { transactions, guests, walkInTransactions, addSyncLogEntry } = hotelData;
+    const { transactions, guests, walkInTransactions, expenses, addExpense, deleteExpense, addSyncLogEntry } = hotelData;
+    const { currentUser } = useAuth();
+    const [activeTab, setActiveTab] = useState<'pnl' | 'expenditure' | 'history'>('pnl');
     const [dateRange, setDateRange] = useState({ start: thirtyDaysAgoStr, end: today });
-    
-    const getGuestName = (guestId: number) => {
-        return guests.find(g => g.id === guestId)?.name || 'N/A';
-    };
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [expenseForm, setExpenseForm] = useState({ category: 'Supplies' as Expense['category'], amount: '', description: '', date: today });
+
+    const isManager = currentUser?.role === UserRole.Manager || currentUser?.role === UserRole.Admin || currentUser?.role === UserRole.SuperAdmin;
 
     const unifiedTransactions = useMemo(() => {
-        const inHouse: UnifiedTransaction[] = transactions.map(t => {
-            const isTax = t.description.toLowerCase().includes('tax');
-            return {
-                id: `inhouse-${t.id}`,
-                date: t.date,
-                source: 'In-house',
-                guestName: getGuestName(t.guestId),
-                description: t.description,
-                charge: t.amount > 0 && !isTax ? t.amount : 0,
-                payment: t.amount < 0 ? -t.amount : 0,
-                tax: isTax ? t.amount : 0,
-            };
-        });
-
-        const walkIn: UnifiedTransaction[] = walkInTransactions.map(t => ({
-            id: `walkin-${t.id}`,
+        const inHouse = transactions.map(t => ({
+            id: `inhouse-${t.id}`,
             date: t.date,
-            source: 'Walk-in',
-            guestName: 'Walk-in Guest',
-            description: t.service === 'Other' && t.serviceDetails ? t.serviceDetails : t.service,
-            charge: t.amount - t.discount, // This is the net charge before tax
-            payment: t.amountPaid,
-            tax: t.tax,
+            source: 'In-house' as const,
+            guestName: guests.find(g => g.id === t.guestId)?.name || 'N/A',
+            description: t.description,
+            charge: t.amount > 0 && !t.description.toLowerCase().includes('tax') ? t.amount : 0,
+            payment: t.amount < 0 ? -t.amount : 0,
+            tax: t.description.toLowerCase().includes('tax') ? t.amount : 0,
+            expense: 0
         }));
 
-        return [...inHouse, ...walkIn].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [transactions, walkInTransactions, guests]);
+        const walkIn = walkInTransactions.map(t => ({
+            id: `walkin-${t.id}`,
+            date: t.date,
+            source: 'Walk-in' as const,
+            guestName: 'Walk-in Guest',
+            description: t.service,
+            charge: t.amount - t.discount,
+            payment: t.amountPaid,
+            tax: t.tax,
+            expense: 0
+        }));
 
+        const exps = expenses.map(e => ({
+            id: `exp-${e.id}`,
+            date: e.date,
+            source: 'Expenditure' as const,
+            guestName: 'Supplier/Internal',
+            description: `[${e.category}] ${e.description}`,
+            charge: 0,
+            payment: 0,
+            tax: 0,
+            expense: e.amount
+        }));
+
+        return [...inHouse, ...walkIn, ...exps].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [transactions, walkInTransactions, expenses, guests]);
 
     const filteredTransactions = useMemo(() => {
-        return unifiedTransactions.filter(t => {
-            const tDate = new Date(t.date);
-            // Add a day to the end date to make it inclusive
-            const endDate = new Date(dateRange.end);
-            endDate.setDate(endDate.getDate() + 1);
-            const startDate = new Date(dateRange.start);
-            return tDate >= startDate && tDate < endDate;
-        });
+        return unifiedTransactions.filter(t => t.date >= dateRange.start && t.date <= dateRange.end);
     }, [unifiedTransactions, dateRange]);
 
     const reportData = useMemo(() => {
-        const totalCharges = filteredTransactions.reduce((sum, t) => sum + t.charge, 0);
-        const totalPayments = filteredTransactions.reduce((sum, t) => sum + t.payment, 0);
-        const totalTax = filteredTransactions.reduce((sum, t) => sum + t.tax, 0);
-        const netRevenue = totalCharges + totalTax; // Net is charges + tax
-
-        return {
-            totalCharges,
-            totalPayments,
-            totalTax,
-            netRevenue
-        };
+        const totalRevenue = filteredTransactions.reduce((s, t) => s + t.charge + t.tax, 0);
+        const totalExpenses = filteredTransactions.reduce((s, t) => s + t.expense, 0);
+        const netProfit = totalRevenue - totalExpenses;
+        return { totalRevenue, totalExpenses, netProfit };
     }, [filteredTransactions]);
-    
-    const handlePrint = () => {
-        window.print();
-    }
-    
-    const handleDownloadExcel = () => {
-        const summaryData = [
-            ["Tidé Hotels Financial Report"],
-            [`Period: ${dateRange.start} to ${dateRange.end}`],
-            [], // Empty row
-            ["Summary"],
-            ["Total Charges (excl. Tax)", reportData.totalCharges],
-            ["Total Tax Collected", reportData.totalTax],
-            ["Total Payments", reportData.totalPayments],
-            ["Net Revenue (Charges + Tax)", reportData.netRevenue],
-            [], // Empty row
-        ];
 
-        const transactionHeaders = ["Date", "Source", "Guest", "Description", "Charge", "Tax", "Payment"];
-        const transactionRows = filteredTransactions.map(t => [
-            t.date,
-            t.source,
-            t.guestName,
-            t.description,
-            { v: t.charge, t: 'n', z: '₦#,##0.00' },
-            { v: t.tax, t: 'n', z: '₦#,##0.00' },
-            { v: t.payment, t: 'n', z: '₦#,##0.00' }
-        ]);
-        
-        // Create worksheet from summary data
-        const ws = XLSX.utils.aoa_to_sheet(summaryData);
-        
-        // Add transaction log to the same sheet, starting after the summary
-        XLSX.utils.sheet_add_aoa(ws, [transactionHeaders, ...transactionRows], { origin: -1 });
-
-        // Set column widths for better readability
-        ws['!cols'] = [
-            { wch: 12 }, // Date
-            { wch: 10 }, // Source
-            { wch: 25 }, // Guest
-            { wch: 40 }, // Description
-            { wch: 15 }, // Charge
-            { wch: 15 }, // Tax
-            { wch: 15 }  // Payment
-        ];
-        
-        // Create a new workbook and append the sheet
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Financial Report");
-
-        // Trigger the download
-        XLSX.writeFile(wb, `Tide_Hotels_Financial_Report_${dateRange.start}_to_${dateRange.end}.xlsx`);
-    };
-
-    const handleDownloadFullHistory = () => {
-        const headerData = [
-            ["Tidé Hotels Complete Transaction History"],
-            []
-        ];
-
-        const transactionHeaders = ["Date", "Source", "Guest", "Description", "Charge", "Tax", "Payment"];
-        const transactionRows = unifiedTransactions.map(t => [
-            t.date,
-            t.source,
-            t.guestName,
-            t.description,
-            { v: t.charge, t: 'n', z: '₦#,##0.00' },
-            { v: t.tax, t: 'n', z: '₦#,##0.00' },
-            { v: t.payment, t: 'n', z: '₦#,##0.00' }
-        ]);
-
-        const ws = XLSX.utils.aoa_to_sheet(headerData);
-        XLSX.utils.sheet_add_aoa(ws, [transactionHeaders, ...transactionRows], { origin: -1 });
-
-        ws['!cols'] = [ { wch: 12 }, { wch: 10 }, { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 } ];
-        
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Full Transaction History");
-        XLSX.writeFile(wb, `Tide_Hotels_Full_Transaction_History.xlsx`);
-        addSyncLogEntry('Downloaded complete transaction history.', 'info');
+    const handleSaveExpense = () => {
+        if (!expenseForm.amount || !expenseForm.description) return;
+        addExpense({
+            category: expenseForm.category,
+            amount: parseFloat(expenseForm.amount),
+            description: expenseForm.description,
+            date: expenseForm.date
+        });
+        setIsExpenseModalOpen(false);
+        setExpenseForm({ category: 'Supplies', amount: '', description: '', date: today });
     };
 
     return (
-        <div>
-            <style>
-                {`
-                @media print {
-                    body * {
-                        visibility: hidden;
-                    }
-                    .printable-area, .printable-area * {
-                        visibility: visible;
-                    }
-                    .printable-area {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                    }
-                    .dark .printable-area {
-                         color: black;
-                         background: white;
-                    }
-                }
-                `}
-            </style>
-            <Card title="Financial Reports">
-                <div className="flex flex-wrap gap-4 items-center mb-6 print:hidden">
-                    <div>
-                        <label htmlFor="start-date" className="block text-sm font-medium mb-1">Start Date</label>
-                        <input
-                            type="date"
-                            id="start-date"
-                            value={dateRange.start}
-                            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                            className="p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="end-date" className="block text-sm font-medium mb-1">End Date</label>
-                        <input
-                            type="date"
-                            id="end-date"
-                            value={dateRange.end}
-                            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                            className="p-2 rounded-md bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600"
-                        />
-                    </div>
-                    <div className="self-end flex flex-wrap gap-2">
-                         <Button onClick={handlePrint} variant="secondary" className="flex items-center space-x-2">
-                            <PrintIcon/>
-                            <span>Print Report</span>
-                         </Button>
-                         <Button onClick={handleDownloadExcel} variant="secondary" className="flex items-center space-x-2">
-                             <ExcelIcon/>
-                             <span>Download Report (Excel)</span>
-                         </Button>
-                         <Button onClick={handleDownloadFullHistory} variant="secondary" className="flex items-center space-x-2">
-                             <ExcelIcon/>
-                             <span>Download Full History</span>
-                         </Button>
-                    </div>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Fiscal Command</h1>
+                <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-300 dark:border-slate-700">
+                    <button onClick={() => setActiveTab('pnl')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'pnl' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>P&L Engine</button>
+                    <button onClick={() => setActiveTab('expenditure')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'expenditure' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Expenditure</button>
+                    <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Full Log</button>
                 </div>
+            </div>
 
-                <div className="printable-area p-4">
-                    <div className="text-center mb-8 hidden print:block">
-                        <h1 className="text-2xl font-bold">Tidé Hotels PMS</h1>
-                        <h2 className="text-xl">Financial Summary</h2>
-                        <p className="text-sm">For period: {dateRange.start} to ${dateRange.end}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-                            <h4 className="text-lg font-semibold text-slate-600 dark:text-slate-400">Total Charges</h4>
-                            <p className="text-3xl font-bold mt-2 text-green-600 dark:text-green-400">₦{reportData.totalCharges.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        </div>
-                         <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-                            <h4 className="text-lg font-semibold text-slate-600 dark:text-slate-400">Total Tax</h4>
-                            <p className="text-3xl font-bold mt-2 text-amber-600 dark:text-amber-400">₦{reportData.totalTax.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-                            <h4 className="text-lg font-semibold text-slate-600 dark:text-slate-400">Total Payments</h4>
-                            <p className="text-3xl font-bold mt-2 text-blue-600 dark:text-blue-400">₦{reportData.totalPayments.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-                            <h4 className="text-lg font-semibold text-slate-600 dark:text-slate-400">Net Revenue</h4>
-                            <p className="text-3xl font-bold mt-2 text-indigo-600 dark:text-indigo-400">₦{reportData.netRevenue.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        </div>
-                    </div>
-                    
+            <Card className="print:hidden">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                     <div>
-                        <h3 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Transaction Log</h3>
-                         <div className="overflow-x-auto max-h-[50vh]">
-                          <table className="w-full text-left">
-                            <thead className="bg-slate-200 dark:bg-slate-700 sticky top-0">
-                              <tr className="border-b border-slate-200 dark:border-slate-600">
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Date</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Source</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Guest</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Description</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-right">Charge</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-right">Tax</th>
-                                <th className="p-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-right">Payment</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredTransactions.map((t, index) => (
-                                <tr key={t.id} className={`border-b border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'} `}>
-                                  <td className="p-3 text-slate-800 dark:text-slate-300">{t.date}</td>
-                                  <td className="p-3 text-slate-800 dark:text-slate-300">{t.source}</td>
-                                  <td className="p-3 text-slate-800 dark:text-slate-300">{t.guestName}</td>
-                                  <td className="p-3 text-slate-800 dark:text-slate-300">{t.description}</td>
-                                  <td className="p-3 font-semibold text-red-600 dark:text-red-400 text-right">
-                                     {t.charge > 0 ? `₦${t.charge.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                  </td>
-                                   <td className="p-3 font-semibold text-amber-600 dark:text-amber-400 text-right">
-                                     {t.tax > 0 ? `₦${t.tax.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                  </td>
-                                  <td className="p-3 font-semibold text-green-600 dark:text-green-400 text-right">
-                                     {t.payment > 0 ? `₦${t.payment.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                  </td>
-                                </tr>
-                              ))}
-                               {filteredTransactions.length === 0 && (
-                                  <tr>
-                                      <td colSpan={7} className="text-center py-4 text-slate-500 dark:text-slate-400">No transactions found for the selected period.</td>
-                                  </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Timeline Start</label>
+                        <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-2 border rounded font-bold text-xs" />
                     </div>
+                    <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Timeline End</label>
+                        <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-2 border rounded font-bold text-xs" />
+                    </div>
+                    {activeTab === 'expenditure' && isManager && (
+                        <div className="md:col-span-2 flex justify-end">
+                            <Button onClick={() => setIsExpenseModalOpen(true)}>Log New Expense</Button>
+                        </div>
+                    )}
                 </div>
             </Card>
+
+            {activeTab === 'pnl' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="border-l-4 border-green-500">
+                        <p className="text-[10px] font-black uppercase text-slate-500">Gross Realized Revenue</p>
+                        <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">₦{reportData.totalRevenue.toLocaleString()}</h4>
+                    </Card>
+                    <Card className="border-l-4 border-red-500">
+                        <p className="text-[10px] font-black uppercase text-slate-500">Total Operational Expenditure</p>
+                        <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mt-1">₦{reportData.totalExpenses.toLocaleString()}</h4>
+                    </Card>
+                    <Card className={`border-l-4 ${reportData.netProfit >= 0 ? 'border-indigo-600' : 'border-orange-500'} bg-slate-900 text-white`}>
+                        <p className="text-[10px] font-black uppercase opacity-60">Net Operational Yield (P&L)</p>
+                        <h4 className="text-3xl font-black tracking-tighter mt-1">₦{reportData.netProfit.toLocaleString()}</h4>
+                    </Card>
+                    
+                    <Card title="Revenue Distribution" className="lg:col-span-3">
+                        <div className="h-4 w-full bg-slate-100 rounded-full flex overflow-hidden">
+                             <div className="bg-green-500 h-full" style={{ width: `${(reportData.totalRevenue / (reportData.totalRevenue + reportData.totalExpenses || 1)) * 100}%` }}></div>
+                             <div className="bg-red-500 h-full" style={{ width: `${(reportData.totalExpenses / (reportData.totalRevenue + reportData.totalExpenses || 1)) * 100}%` }}></div>
+                        </div>
+                        <div className="flex gap-4 mt-4 text-[10px] font-black uppercase">
+                            <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-500 rounded"></span> Inbound</div>
+                            <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-500 rounded"></span> Outbound</div>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {activeTab === 'expenditure' && (
+                <Card title="Expenditure Ledger">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 dark:bg-slate-900 border-b">
+                                <tr>
+                                    <th className="p-3 text-[10px] font-black uppercase text-slate-400">Timeline</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-slate-400">Category</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-slate-400">Description</th>
+                                    <th className="p-3 text-[10px] font-black uppercase text-slate-400 text-right">Value</th>
+                                    {isManager && <th className="p-3 text-[10px] font-black uppercase text-slate-400 text-right">Action</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {expenses.filter(e => e.date >= dateRange.start && e.date <= dateRange.end).map(e => (
+                                    <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50">
+                                        <td className="p-3 font-mono text-[10px]">{e.date}</td>
+                                        <td className="p-3"><span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[9px] font-black uppercase border">{e.category}</span></td>
+                                        <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-300">{e.description}</td>
+                                        <td className="p-3 text-right font-black text-red-500 font-mono">₦{e.amount.toLocaleString()}</td>
+                                        {isManager && <td className="p-3 text-right"><button onClick={() => deleteExpense(e.id)} className="text-red-500 text-[9px] font-black uppercase hover:underline">Revoke</button></td>}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+
+            <Modal isOpen={isExpenseModalOpen} onClose={() => setIsExpenseModalOpen(false)} title="Operational Outbound Posting">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Expenditure Tier</label>
+                            <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value as any})} className="w-full p-2 border rounded font-black text-xs uppercase">
+                                <option value="Payroll">Human Resources / Payroll</option>
+                                <option value="Utilities">Utilities & Energy</option>
+                                <option value="Supplies">Operating Supplies</option>
+                                <option value="Maintenance">Infrastructure Maintenance</option>
+                                <option value="Marketing">Sales & Marketing</option>
+                                <option value="Other">Miscellaneous Outbound</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Posting Date</label>
+                            <input type="date" value={expenseForm.date} onChange={e => setExpenseForm({...expenseForm, date: e.target.value})} className="w-full p-2 border rounded font-bold text-xs" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Commodity / Service Designation</label>
+                        <input type="text" value={expenseForm.description} onChange={e => setExpenseForm({...expenseForm, description: e.target.value})} className="w-full p-2 border rounded font-black uppercase text-xs" placeholder="e.g. Electricity Bill Jan 2024" />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Settlement Valuation (₦)</label>
+                        <input type="number" value={expenseForm.amount} onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} className="w-full p-3 border rounded font-mono font-black text-xl" />
+                    </div>
+                    <div className="pt-4 flex justify-end gap-2 border-t">
+                        <Button variant="secondary" onClick={() => setIsExpenseModalOpen(false)}>Abort</Button>
+                        <Button onClick={handleSaveExpense}>Authorize Posting</Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
-
-const PrintIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-);
-
-const ExcelIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-);

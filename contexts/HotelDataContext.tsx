@@ -1,23 +1,38 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, AuditLogEntry, MaintenanceRequest, RoomType, TaxSettings, RoomStatus, MaintenanceStatus, InventoryItem, Supplier, RatePlan, DiscountRule, TaxCharge } from '../types.ts';
-import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS } from '../constants.tsx';
-import { RoomStatus as RoomStatusEnum, UserRole } from '../types.ts';
+import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, AuditLogEntry, MaintenanceRequest, RoomType, TaxSettings, InventoryItem, Supplier, RatePlan, DiscountRule, TaxCharge, CityLedgerAccount, CityLedgerTransaction, InventoryMovement, BaseEntity, PropertyInfo, Staff, Branch, Role, ModulePermissions, CateringAsset, Event, SystemSecuritySettings, SystemIntegrationSettings, Expense, MenuItem, SecurityIncident } from '../types.ts';
+import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS, INITIAL_STAFF, MENU_ITEMS as STATIC_MENU } from '../constants.tsx';
+import { RoomStatus as RoomStatusEnum, HousekeepingStatus, UserRole, MaintenanceStatus, PaymentStatus, InventoryCategory } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 
 type HotelState = {
+    propertyInfo: PropertyInfo;
+    securitySettings: SystemSecuritySettings;
+    integrationSettings: SystemIntegrationSettings;
+    branches: Branch[];
+    customRoles: Role[];
+    systemStatus: HotelData['systemStatus'];
+    licenseStatus: HotelData['licenseStatus'];
+    systemModules: Record<string, boolean>;
     rooms: Room[];
     guests: Guest[];
     reservations: Reservation[];
     transactions: Transaction[];
+    cityLedgerAccounts: CityLedgerAccount[];
+    cityLedgerTransactions: CityLedgerTransaction[];
+    inventoryMovements: InventoryMovement[];
     loyaltyTransactions: LoyaltyTransaction[];
     walkInTransactions: WalkInTransaction[];
     orders: Order[];
     employees: Employee[];
+    staff: Staff[];
     syncLog: SyncLogEntry[];
     auditLog: AuditLogEntry[];
+    securityIncidents: SecurityIncident[];
     maintenanceRequests: MaintenanceRequest[];
     roomTypes: RoomType[];
+    cateringAssets: CateringAsset[];
+    events: Event[];
     ratePlans: RatePlan[];
     discountRules: DiscountRule[];
     taxCharges: TaxCharge[];
@@ -25,581 +40,376 @@ type HotelState = {
     stopSell: { [key: string]: boolean };
     inventory: InventoryItem[];
     suppliers: Supplier[];
-};
-
-const INITIAL_STATE: HotelState = {
-    rooms: INITIAL_ROOMS.map(r => ({ ...r, isActive: true })),
-    guests: [],
-    reservations: INITIAL_RESERVATIONS,
-    transactions: [],
-    loyaltyTransactions: [],
-    walkInTransactions: [],
-    orders: [],
-    employees: [],
-    syncLog: [],
-    auditLog: [],
-    maintenanceRequests: [],
-    roomTypes: INITIAL_ROOM_TYPES.map(rt => ({ ...rt, isActive: true })),
-    ratePlans: [
-        { id: 1, name: 'Standard Rack Rate', roomTypeId: 1, rates: { NGN: 45000, USD: 60 }, isActive: true, description: 'Base rack rate for standard rooms.' },
-        { id: 2, name: 'Deluxe Rack Rate', roomTypeId: 2, rates: { NGN: 65000, USD: 85 }, isActive: true, description: 'Base rack rate for deluxe rooms.' },
-    ],
-    discountRules: [
-        { id: 1, name: 'Early Bird 10%', type: 'percentage', value: 10, isActive: true, applicableRoles: [UserRole.Manager, UserRole.FrontDesk] },
-        { id: 2, name: 'Corporate Fixed Discount', type: 'fixed', value: 5000, isActive: true, applicableRoles: [UserRole.Manager] },
-    ],
-    taxCharges: [
-        { id: 1, name: 'VAT', rate: 7.5, isInclusive: false, isActive: true },
-        { id: 2, name: 'Service Charge', rate: 5, isInclusive: false, isActive: true },
-    ],
-    taxSettings: INITIAL_TAX_SETTINGS,
-    stopSell: {},
-    inventory: INITIAL_INVENTORY,
-    suppliers: INITIAL_SUPPLIERS,
+    expenses: Expense[];
+    menuItems: MenuItem[];
 };
 
 export const HotelDataContext = createContext<HotelData | undefined>(undefined);
 
 export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
+    const [clientIp, setClientIp] = useState<string>('N/A');
+
+    const createMetadata = (userName: string): BaseEntity => ({
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: userName || 'SYSTEM',
+        updatedBy: userName || 'SYSTEM',
+        isDeleted: false,
+    });
+
+    const INITIAL_STATE: HotelState = {
+        propertyInfo: {
+            name: 'Tidé Hotels & Resorts',
+            address: 'Corporate Headquarters, Victoria Island, Lagos',
+            phone: '+234 800 TIDE PMS',
+            email: 'operations@tidehotels.com',
+            website: 'www.tidehotels.com',
+            currency: 'NGN',
+            timezone: 'Africa/Lagos',
+            language: 'English',
+            checkInTime: '14:00',
+            checkOutTime: '11:00'
+        },
+        securitySettings: {
+          passwordPolicy: 'Strong',
+          enforce2FA: true,
+          loginAttemptLimit: 5,
+          sessionTimeoutMinutes: 30,
+          ipWhitelist: []
+        },
+        integrationSettings: {
+          paymentGateway: 'Paystack',
+          posSystem: 'Lightspeed',
+          channelManagerApi: 'Siteminder',
+          accountingSoftware: 'Quickbooks'
+        },
+        branches: [
+          { id: 'main', name: 'Lagos Headquarters', location: 'Victoria Island', status: 'Active' },
+          { id: 'abuja', name: 'Tidé Abuja', location: 'Maitama', status: 'Active' }
+        ],
+        customRoles: [],
+        systemStatus: 'Active',
+        licenseStatus: 'Paid',
+        systemModules: {
+            reception: true,
+            finance: true,
+            housekeeping: true,
+            inventory: true,
+            catering: true,
+            restaurant: true,
+            maintenance: true,
+            loyalty: true
+        },
+        staff: INITIAL_STAFF.map(s => ({ ...s, branchId: 'main', status: 'Active', department: 'Management', ...createMetadata('SYSTEM') })),
+        rooms: INITIAL_ROOMS.map(r => ({ ...r, floor: Math.floor(parseInt(r.number) / 100), housekeepingStatus: HousekeepingStatus.Clean, isActive: true, ...createMetadata('SYSTEM') })) as Room[],
+        guests: [],
+        reservations: INITIAL_RESERVATIONS.map(r => ({ ...r, status: 'Confirmed', paymentStatus: PaymentStatus.Pending, ...createMetadata('SYSTEM') })) as Reservation[],
+        transactions: [],
+        cityLedgerAccounts: [
+            { id: 1, companyName: 'Shell Nigeria', creditLimit: 5000000, currentBalance: 0, contactPerson: 'Billing Dept', email: 'shell@hotels.com', phone: '080-000-0001', paymentTerms: 'Net 30', isActive: true, ...createMetadata('SYSTEM') },
+            { id: 2, companyName: 'Nigerian Breweries', creditLimit: 2000000, currentBalance: 0, contactPerson: 'Finance Team', email: 'nb@hotels.com', phone: '080-000-0002', paymentTerms: 'Net 15', isActive: true, ...createMetadata('SYSTEM') },
+        ],
+        cityLedgerTransactions: [],
+        inventoryMovements: [],
+        loyaltyTransactions: [],
+        walkInTransactions: [],
+        orders: [],
+        employees: [],
+        syncLog: [],
+        auditLog: [],
+        securityIncidents: [],
+        maintenanceRequests: [],
+        roomTypes: INITIAL_ROOM_TYPES.map(rt => ({ ...rt, isActive: true, ...createMetadata('SYSTEM') })) as RoomType[],
+        cateringAssets: [
+          { id: 1, name: 'Chafing Dish (Rectangular)', quantityTotal: 25, quantityAvailable: 25, condition: 'Excellent', ...createMetadata('SYSTEM') },
+          { id: 2, name: 'Dinner Plates (Set of 50)', quantityTotal: 10, quantityAvailable: 10, condition: 'Good', ...createMetadata('SYSTEM') },
+        ],
+        events: [],
+        ratePlans: [],
+        discountRules: [],
+        taxCharges: [],
+        taxSettings: INITIAL_TAX_SETTINGS,
+        stopSell: {},
+        inventory: INITIAL_INVENTORY.map(i => ({ ...i, category: InventoryCategory.Housekeeping, ...createMetadata('SYSTEM') })) as InventoryItem[],
+        suppliers: INITIAL_SUPPLIERS.map(s => ({ ...s, ...createMetadata('SYSTEM') })) as Supplier[],
+        expenses: [],
+        menuItems: STATIC_MENU.map((m, idx) => ({ ...m, id: idx + 1, category: 'Food', isActive: true, ...createMetadata('SYSTEM') })) as MenuItem[],
+    };
 
     const [state, setState] = useState<HotelState>(() => {
         try {
-            const savedState = localStorage.getItem('tide_pms_data_v2');
+            const savedState = localStorage.getItem('tide_pms_prod_v4');
             return savedState ? JSON.parse(savedState) : INITIAL_STATE;
         } catch (error) {
-            console.error("Failed to load state from localStorage:", error);
             return INITIAL_STATE;
         }
     });
 
     useEffect(() => {
-        try {
-            localStorage.setItem('tide_pms_data_v2', JSON.stringify(state));
-        } catch (error) {
-            console.error("Failed to save state to localStorage:", error);
-        }
+        fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => setClientIp(data.ip))
+            .catch(() => setClientIp('127.0.0.1'));
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('tide_pms_prod_v4', JSON.stringify(state));
     }, [state]);
 
-    const logAudit = (
-        action: string, 
-        entityType: string, 
-        entityId?: string | number, 
-        details: string = '', 
-        previousValue?: string, 
-        newValue?: string
-    ) => {
+    const logAudit = (action: string, entityType: string, entityId?: string | number, details: string = '') => {
         const entry: AuditLogEntry = {
             id: Date.now(),
             timestamp: new Date().toISOString(),
             userId: currentUser?.id || 0,
             userName: currentUser?.name || 'SYSTEM',
-            userRole: currentUser?.role || UserRole.Manager,
+            userRole: currentUser?.role || UserRole.Staff,
+            ipAddress: clientIp,
+            branchId: currentUser?.branchId,
             action,
             entityType,
             entityId,
             details,
-            previousValue,
-            newValue
         };
-        setState(prev => ({
-            ...prev,
-            auditLog: [entry, ...prev.auditLog].slice(0, 2000)
-        }));
+        setState(s => ({ ...s, auditLog: [entry, ...s.auditLog].slice(0, 1000) }));
     };
 
-    const log = (message: string, level: SyncLogEntry['level'] = 'info') => {
-        const newLog: SyncLogEntry = {
-            timestamp: new Date().toLocaleTimeString(),
-            message,
-            level
-        };
-        setState(prev => ({
-            ...prev,
-            syncLog: [newLog, ...prev.syncLog].slice(0, 50)
-        }));
-    };
-
-    // --- Action Implementations ---
-
-    const checkInGuest = (payload: { guest: Omit<Guest, 'id'>, roomId: number, charge: Omit<Transaction, 'id' | 'guestId'>, tax?: Omit<Transaction, 'id' | 'guestId'>, reservationId?: number }) => {
-        setState(prev => {
-            const newGuestId = Date.now();
-            const newGuest: Guest = { ...payload.guest, id: newGuestId };
-            const newTransactions = [...prev.transactions];
-            newTransactions.push({ ...payload.charge, id: Date.now(), guestId: newGuestId });
-            if (payload.tax) {
-                newTransactions.push({ ...payload.tax, id: Date.now() + 1, guestId: newGuestId });
-            }
-            const updatedRooms = prev.rooms.map(r => 
-                r.id === payload.roomId ? { ...r, status: RoomStatusEnum.Occupied, guestId: newGuestId } : r
-            );
-            let updatedReservations = prev.reservations;
-            if (payload.reservationId) {
-                updatedReservations = prev.reservations.filter(r => r.id !== payload.reservationId);
-            }
-            return {
-                ...prev,
-                guests: [...prev.guests, newGuest],
-                transactions: newTransactions,
-                rooms: updatedRooms,
-                reservations: updatedReservations
-            };
-        });
-        log(`Checked in ${payload.guest.name} to Room ID ${payload.roomId}`, 'success');
-        logAudit('CHECK_IN', 'Guest', payload.guest.name, `User ${currentUser?.name} checked in guest to room ${payload.roomId}`);
-    };
-
-    const updateRoomStatus = (roomId: number, status: RoomStatus, guestId?: number) => {
-        const oldStatus = state.rooms.find(r => r.id === roomId)?.status;
-        setState(prev => ({
-            ...prev,
-            rooms: prev.rooms.map(r => r.id === roomId ? { ...r, status, guestId } : r)
-        }));
-        log(`Updated Room ${roomId} status to ${status}`, 'info');
-        logAudit('ROOM_STATUS_UPDATE', 'Room', roomId, `Status changed from ${oldStatus} to ${status}`, oldStatus, status);
-    };
-
-    const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-        setState(prev => ({
-            ...prev,
-            transactions: [...prev.transactions, { ...transaction, id: Date.now() }]
-        }));
-        log(`Added transaction: ${transaction.description}`, 'info');
-        logAudit('TRANSACTION_POST', 'Transaction', transaction.guestId, `Posted ${transaction.amount} for ${transaction.description}`);
-    };
-
-    const deleteTransaction = (transactionId: number) => {
-        const trans = state.transactions.find(t => t.id === transactionId);
-        setState(prev => ({
-            ...prev,
-            transactions: prev.transactions.filter(t => t.id !== transactionId)
-        }));
-        log(`Deleted transaction ID ${transactionId}`, 'warn');
-        logAudit('TRANSACTION_DELETE', 'Transaction', transactionId, `Deleted transaction: ${trans?.description} (Amount: ${trans?.amount})`);
-    };
-
-    const addOrder = (order: Omit<Order, 'id' | 'createdAt'>) => {
-        setState(prev => ({
-            ...prev,
-            orders: [...prev.orders, { ...order, id: Date.now(), createdAt: new Date().toISOString() }]
-        }));
-        log(`New order placed for Room ID ${order.roomId}`, 'success');
-        logAudit('ORDER_CREATE', 'Order', order.roomId, `Placed room service order for room ${order.roomId}`);
-    };
-
-    const updateOrderStatus = (orderId: number, status: Order['status']) => {
-        const oldStatus = state.orders.find(o => o.id === orderId)?.status;
-        setState(prev => ({
-            ...prev,
-            orders: prev.orders.map(o => o.id === orderId ? { ...o, status } : o)
-        }));
-        logAudit('ORDER_STATUS_UPDATE', 'Order', orderId, `Order ${orderId} status changed to ${status}`, oldStatus, status);
-    };
-
-    const addReservation = (reservation: Omit<Reservation, 'id'>) => {
-         setState(prev => ({
-            ...prev,
-            reservations: [...prev.reservations, { ...reservation, id: Date.now() }]
-        }));
-        log(`New reservation for ${reservation.guestName}`, 'success');
-        logAudit('RESERVATION_CREATE', 'Reservation', reservation.guestName, `New reservation from ${reservation.ota}`);
-    };
-
-    const addWalkInTransaction = (transaction: Omit<WalkInTransaction, 'id' | 'date'>) => {
-        setState(prev => ({
-            ...prev,
-            walkInTransactions: [...prev.walkInTransactions, { ...transaction, id: Date.now(), date: new Date().toISOString().split('T')[0] }]
-        }));
-        log('Processed new walk-in transaction', 'success');
-        logAudit('WALKIN_TRANSACTION', 'Walk-in', transaction.service, `Processed ${transaction.amount} walk-in service: ${transaction.service}`);
-    };
-
-    const addMaintenanceRequest = (request: Omit<MaintenanceRequest, 'id' | 'reportedAt' | 'status'>) => {
-        setState(prev => ({
-            ...prev,
-            maintenanceRequests: [...prev.maintenanceRequests, { 
-                ...request, 
-                id: Date.now(), 
-                reportedAt: new Date().toLocaleDateString(), 
-                status: 'Reported' as MaintenanceStatus 
-            }]
-        }));
-        log('New maintenance request reported', 'warn');
-        logAudit('MAINTENANCE_REPORT', 'Maintenance', request.location, `Reported issue at ${request.location}: ${request.description}`);
-    };
-
-    const updateMaintenanceRequestStatus = (requestId: number, status: MaintenanceStatus) => {
-        const oldStatus = state.maintenanceRequests.find(r => r.id === requestId)?.status;
-        setState(prev => ({
-            ...prev,
-            maintenanceRequests: prev.maintenanceRequests.map(req => req.id === requestId ? { ...req, status } : req)
-        }));
-        logAudit('MAINTENANCE_STATUS_UPDATE', 'Maintenance', requestId, `Status changed to ${status}`, oldStatus, status);
-    };
-
-    const addEmployee = (employee: Omit<Employee, 'id'>) => {
-        setState(prev => ({
-            ...prev,
-            employees: [...prev.employees, { ...employee, id: Date.now() }]
-        }));
-        log(`Added new employee: ${employee.name}`, 'info');
-        logAudit('EMPLOYEE_ADD', 'Employee', employee.name, `New employee hired: ${employee.name} as ${employee.jobTitle}`);
-    };
-
-    const updateEmployee = (employee: Employee) => {
-        setState(prev => ({
-            ...prev,
-            employees: prev.employees.map(e => e.id === employee.id ? employee : e)
-        }));
-        log(`Updated employee: ${employee.name}`, 'info');
-        logAudit('EMPLOYEE_UPDATE', 'Employee', employee.id, `Updated profile for ${employee.name}`);
-    };
-
-    const deleteEmployee = (employeeId: number) => {
-        const emp = state.employees.find(e => e.id === employeeId);
-        setState(prev => ({
-            ...prev,
-            employees: prev.employees.filter(e => e.id !== employeeId)
-        }));
-        log('Removed employee', 'warn');
-        logAudit('EMPLOYEE_DELETE', 'Employee', employeeId, `Removed employee: ${emp?.name}`);
-    };
-
-    const updateGuestDetails = (guestId: number, updatedGuest: Partial<Guest>) => {
-        setState(prev => ({
-            ...prev,
-            guests: prev.guests.map(g => g.id === guestId ? { ...g, ...updatedGuest } : g)
-        }));
-        log('Updated guest details', 'info');
-        logAudit('GUEST_PROFILE_UPDATE', 'Guest', guestId, `Updated details for guest ID ${guestId}`);
-    };
-
-    const moveGuest = (payload: { guestId: number; oldRoomId: number; newRoomId: number }) => {
-        setState(prev => {
-            const oldRoom = prev.rooms.find(r => r.id === payload.oldRoomId);
-            const newRoom = prev.rooms.find(r => r.id === payload.newRoomId);
-            const guest = prev.guests.find(g => g.id === payload.guestId);
-            if (!oldRoom || !newRoom || !guest) return prev;
-            const updatedRooms = prev.rooms.map(r => {
-                if (r.id === payload.oldRoomId) return { ...r, status: RoomStatusEnum.Dirty, guestId: undefined };
-                if (r.id === payload.newRoomId) return { ...r, status: RoomStatusEnum.Occupied, guestId: payload.guestId };
-                return r;
-            });
-            const updatedGuests = prev.guests.map(g => 
-                g.id === payload.guestId ? { ...g, roomNumber: newRoom.number, roomType: newRoom.type } : g
-            );
-            return { ...prev, rooms: updatedRooms, guests: updatedGuests };
-        });
-        log('Moved guest to new room', 'info');
-        logAudit('GUEST_MOVE', 'Room', payload.guestId, `Moved guest from room ${payload.oldRoomId} to ${payload.newRoomId}`);
-    };
-
-    const updateRate = (roomType: string, newRate: number, currency: 'NGN' | 'USD') => {
-        const oldRate = state.roomTypes.find(rt => rt.name === roomType)?.rates[currency];
-        setState(prev => ({
-            ...prev,
-            roomTypes: prev.roomTypes.map(rt => 
-                rt.name === roomType 
-                ? { ...rt, rates: { ...rt.rates, [currency]: newRate } }
-                : rt
-            ),
-            rooms: prev.rooms.map(r => 
-                r.type === roomType 
-                ? { ...r, rate: currency === 'NGN' ? newRate : r.rate } 
-                : r
-            )
-        }));
-        log(`Updated base rate for ${roomType}`, 'info');
-        logAudit('RATE_UPDATE', 'RoomType', roomType, `Updated ${currency} rate from ${oldRate} to ${newRate}`, oldRate?.toString(), newRate.toString());
-    };
-    
-    const addRoomType = (roomType: Omit<RoomType, 'id'>) => {
-        const id = Date.now();
-        setState(prev => ({
-            ...prev,
-            roomTypes: [...prev.roomTypes, { ...roomType, id, isActive: true }]
-        }));
-        logAudit('ROOM_TYPE_ADD', 'RoomType', roomType.name, `Created new room type: ${roomType.name}`);
-    };
-
-    const updateRoomType = (roomType: RoomType) => {
-        setState(prev => ({
-            ...prev,
-            roomTypes: prev.roomTypes.map(rt => rt.id === roomType.id ? roomType : rt)
-        }));
-        logAudit('ROOM_TYPE_UPDATE', 'RoomType', roomType.id, `Updated room type ${roomType.name}`);
-    };
-
-    const deleteRoomType = (roomTypeId: number) => {
-        const rt = state.roomTypes.find(r => r.id === roomTypeId);
-        setState(prev => {
-            const typeToDelete = prev.roomTypes.find(rt => rt.id === roomTypeId);
-            if(!typeToDelete) return prev;
-            return {
-                ...prev,
-                roomTypes: prev.roomTypes.filter(rt => rt.id !== roomTypeId),
-                rooms: prev.rooms.filter(r => r.type !== typeToDelete.name)
-            }
-        });
-        logAudit('ROOM_TYPE_DELETE', 'RoomType', roomTypeId, `Deleted room type: ${rt?.name}`);
-    };
-
-    const addRoom = (room: { number: string; type: string }) => {
-        setState(prev => {
-            const roomType = prev.roomTypes.find(rt => rt.name === room.type);
-            const rate = roomType ? roomType.rates.NGN : 0;
-            return {
-                ...prev,
-                rooms: [...prev.rooms, { id: Date.now(), number: room.number, type: room.type, rate, status: RoomStatusEnum.Vacant, isActive: true }]
-            }
-        });
-        logAudit('ROOM_ADD', 'Room', room.number, `Added physical room ${room.number} of type ${room.type}`);
-    };
-
-    const updateRoom = (room: Room) => {
-        setState(prev => ({
-            ...prev,
-            rooms: prev.rooms.map(r => r.id === room.id ? room : r)
-        }));
-        logAudit('ROOM_UPDATE', 'Room', room.id, `Updated room details for ${room.number}`);
-    };
-
-    const deleteRoom = (roomId: number) => {
-        const room = state.rooms.find(r => r.id === roomId);
-        setState(prev => ({
-            ...prev,
-            rooms: prev.rooms.filter(r => r.id !== roomId)
-        }));
-        logAudit('ROOM_DELETE', 'Room', roomId, `Deleted room ${room?.number}`);
-    };
-
-    const addRatePlan = (plan: Omit<RatePlan, 'id'>) => {
-        const id = Date.now();
-        setState(prev => ({
-            ...prev,
-            ratePlans: [...prev.ratePlans, { ...plan, id }]
-        }));
-        logAudit('RATE_PLAN_ADD', 'RatePlan', plan.name, `Added new rate plan: ${plan.name}`);
-    };
-
-    const updateRatePlan = (plan: RatePlan) => {
-        setState(prev => ({
-            ...prev,
-            ratePlans: prev.ratePlans.map(p => p.id === plan.id ? plan : p)
-        }));
-        logAudit('RATE_PLAN_UPDATE', 'RatePlan', plan.id, `Updated rate plan: ${plan.name}`);
-    };
-
-    const deleteRatePlan = (id: number) => {
-        setState(prev => ({
-            ...prev,
-            ratePlans: prev.ratePlans.filter(p => p.id !== id)
-        }));
-        logAudit('RATE_PLAN_DELETE', 'RatePlan', id, `Deleted rate plan ID: ${id}`);
-    };
-
-    const addDiscountRule = (rule: Omit<DiscountRule, 'id'>) => {
-        const id = Date.now();
-        setState(prev => ({
-            ...prev,
-            discountRules: [...prev.discountRules, { ...rule, id }]
-        }));
-        logAudit('DISCOUNT_RULE_ADD', 'Discount', rule.name, `Added discount: ${rule.name}`);
-    };
-
-    const updateDiscountRule = (rule: DiscountRule) => {
-        setState(prev => ({
-            ...prev,
-            discountRules: prev.discountRules.map(r => r.id === rule.id ? rule : r)
-        }));
-        logAudit('DISCOUNT_RULE_UPDATE', 'Discount', rule.id, `Updated discount: ${rule.name}`);
-    };
-
-    const deleteDiscountRule = (id: number) => {
-        setState(prev => ({
-            ...prev,
-            discountRules: prev.discountRules.filter(r => r.id !== id)
-        }));
-        logAudit('DISCOUNT_RULE_DELETE', 'Discount', id, `Deleted discount rule ID: ${id}`);
-    };
-
-    const addTaxCharge = (charge: Omit<TaxCharge, 'id'>) => {
-        const id = Date.now();
-        setState(prev => ({
-            ...prev,
-            taxCharges: [...prev.taxCharges, { ...charge, id }]
-        }));
-        logAudit('TAX_CHARGE_ADD', 'Tax', charge.name, `Added tax charge: ${charge.name}`);
-    };
-
-    const updateTaxCharge = (charge: TaxCharge) => {
-        setState(prev => ({
-            ...prev,
-            taxCharges: prev.taxCharges.map(t => t.id === charge.id ? charge : t)
-        }));
-        logAudit('TAX_CHARGE_UPDATE', 'Tax', charge.id, `Updated tax charge: ${charge.name}`);
-    };
-
-    const deleteTaxCharge = (id: number) => {
-        setState(prev => ({
-            ...prev,
-            taxCharges: prev.taxCharges.filter(t => t.id !== id)
-        }));
-        logAudit('TAX_CHARGE_DELETE', 'Tax', id, `Deleted tax charge ID: ${id}`);
-    };
-
-    const setStopSell = (stopSell: { [key: string]: boolean }) => {
-        setState(prev => ({ ...prev, stopSell }));
-        logAudit('STOP_SELL_TOGGLE', 'Channel', 'Multiple', 'Updated stop sell restrictions');
-    };
-
-    const setTaxSettings = (taxSettings: TaxSettings) => {
-        const oldSettings = JSON.stringify(state.taxSettings);
-        setState(prev => ({ ...prev, taxSettings }));
-        logAudit('TAX_CONFIG_UPDATE', 'System', 'Tax', `Updated tax rate to ${taxSettings.rate}%`, oldSettings, JSON.stringify(taxSettings));
-    };
-
-    // --- Inventory Actions ---
-    const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
-        setState(prev => ({
-            ...prev,
-            inventory: [...prev.inventory, { ...item, id: Date.now() }]
-        }));
-        log(`Added inventory item: ${item.name}`, 'info');
-        logAudit('INVENTORY_ADD', 'Inventory', item.name, `Added item ${item.name} to ${item.category}`);
-    };
-
-    const updateInventoryItem = (item: InventoryItem) => {
-        const oldItem = state.inventory.find(i => i.id === item.id);
-        setState(prev => ({
-            ...prev,
-            inventory: prev.inventory.map(i => i.id === item.id ? item : i)
-        }));
-        logAudit('INVENTORY_UPDATE', 'Inventory', item.id, `Updated stock/details for ${item.name}`, oldItem?.quantity.toString(), item.quantity.toString());
-    };
-
-    const deleteInventoryItem = (itemId: number) => {
-        const item = state.inventory.find(i => i.id === itemId);
-        setState(prev => ({
-            ...prev,
-            inventory: prev.inventory.filter(i => i.id !== itemId)
-        }));
-        logAudit('INVENTORY_DELETE', 'Inventory', itemId, `Removed inventory item: ${item?.name}`);
-    };
-
-    const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
-        setState(prev => ({
-            ...prev,
-            suppliers: [...prev.suppliers, { ...supplier, id: Date.now() }]
-        }));
-        logAudit('SUPPLIER_ADD', 'Supplier', supplier.name, `Onboarded new supplier: ${supplier.name}`);
-    };
-
-    const updateSupplier = (supplier: Supplier) => {
-        setState(prev => ({
-            ...prev,
-            suppliers: prev.suppliers.map(s => s.id === supplier.id ? supplier : s)
-        }));
-        logAudit('SUPPLIER_UPDATE', 'Supplier', supplier.id, `Updated profile for supplier: ${supplier.name}`);
-    };
-
-    const deleteSupplier = (supplierId: number) => {
-        const supp = state.suppliers.find(s => s.id === supplierId);
-        setState(prev => ({
-            ...prev,
-            suppliers: prev.suppliers.filter(s => s.id !== supplierId)
-        }));
-        logAudit('SUPPLIER_DELETE', 'Supplier', supplierId, `Removed supplier: ${supp?.name}`);
-    };
-
-    const clearAllData = () => {
-        logAudit('SYSTEM_CLEAR', 'System', 'ALL', 'FULL SYSTEM RESET INITIATED BY ADMIN');
-        setState({ ...INITIAL_STATE, rooms: [], roomTypes: [], inventory: [], suppliers: [] }); 
-        localStorage.removeItem('tide_pms_data_v2');
-        window.location.reload();
-    };
-    
-    const addLoyaltyPoints = (guestId: number, points: number, description: string) => {
-        setState(prev => ({
-            ...prev,
-            guests: prev.guests.map(g => g.id === guestId ? { ...g, loyaltyPoints: g.loyaltyPoints + points } : g),
-            loyaltyTransactions: [...prev.loyaltyTransactions, { id: Date.now(), guestId, points, description, date: new Date().toISOString().split('T')[0] }]
-        }));
-        logAudit('LOYALTY_EARN', 'Loyalty', guestId, `Awarded ${points} points: ${description}`);
-    };
-
-    const redeemLoyaltyPoints = async (guestId: number, pointsToRedeem: number): Promise<{ success: boolean, message: string }> => {
-        let result = { success: false, message: '' };
-        setState(prev => {
-            const guest = prev.guests.find(g => g.id === guestId);
-            if (!guest || guest.loyaltyPoints < pointsToRedeem) {
-                result = { success: false, message: 'Insufficient points' };
-                return prev;
-            }
-            result = { success: true, message: 'Points redeemed successfully' };
-            return {
-                ...prev,
-                guests: prev.guests.map(g => g.id === guestId ? { ...g, loyaltyPoints: g.loyaltyPoints - pointsToRedeem } : g),
-                loyaltyTransactions: [...prev.loyaltyTransactions, { id: Date.now(), guestId, points: -pointsToRedeem, description: 'Redemption', date: new Date().toISOString().split('T')[0] }]
-            };
-        });
-        if (result.success) {
-            logAudit('LOYALTY_REDEEM', 'Loyalty', guestId, `Redeemed ${pointsToRedeem} points`);
-        }
-        return result;
-    };
-
-    const addSyncLogEntry = (message: string, level?: SyncLogEntry['level']) => {
-        log(message, level);
+    const addSyncLogEntry = (message: string, level: SyncLogEntry['level'] = 'info') => {
+        setState(s => ({ ...s, syncLog: [{ timestamp: new Date().toLocaleTimeString(), message, level }, ...s.syncLog].slice(0, 50) }));
     };
 
     const value: HotelData = useMemo(() => ({
         ...state,
-        checkInGuest,
-        updateRoomStatus,
-        addTransaction,
-        deleteTransaction,
-        addOrder,
-        updateOrderStatus,
-        addReservation,
-        addWalkInTransaction,
-        addMaintenanceRequest,
-        updateMaintenanceRequestStatus,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-        updateGuestDetails,
-        moveGuest,
-        updateRate,
-        addRoomType,
-        updateRoomType,
-        deleteRoomType,
-        addRoom,
-        updateRoom,
-        deleteRoom,
-        addRatePlan,
-        updateRatePlan,
-        deleteRatePlan,
-        addDiscountRule,
-        updateDiscountRule,
-        deleteDiscountRule,
-        addTaxCharge,
-        updateTaxCharge,
-        deleteTaxCharge,
-        setStopSell,
-        setTaxSettings,
-        clearAllData,
-        addLoyaltyPoints,
-        redeemLoyaltyPoints,
+        updatePropertyInfo: (i) => {
+            setState(s => ({ ...s, propertyInfo: i }));
+            logAudit('PROPERTY_CONFIG_ALTERED', 'System', i.name, 'Operational metadata updated');
+        },
+        updateSecuritySettings: (s) => {
+            setState(prev => ({ ...prev, securitySettings: s }));
+            logAudit('SECURITY_HARDENING_UPDATED', 'Security', 'Global', 'Access control policies modified');
+        },
+        updateIntegrationSettings: (s) => setState(prev => ({ ...prev, integrationSettings: s })),
+        updateSystemStatus: (s) => {
+            setState(prev => ({ ...prev, systemStatus: s }));
+            logAudit('SYSTEM_STATE_CHANGED', 'Engine', 'Kernel', `Node transitioned to ${s}`);
+        },
+        toggleModule: (id) => {
+            setState(s => ({ ...s, systemModules: { ...s.systemModules, [id]: !s.systemModules[id] } }));
+            logAudit('MODULE_STATE_TOGGLED', 'System', id, `Functional availability altered for ${id}`);
+        },
+        addBranch: (b) => setState(s => ({ ...s, branches: [...s.branches, { ...b, id: `br-${Date.now()}` }] })),
+        updateBranch: (b) => setState(s => ({ ...s, branches: s.branches.map(br => br.id === b.id ? b : br) })),
+        addCustomRole: (r) => setState(s => ({ ...s, customRoles: [...s.customRoles, { ...r, id: `role-${Date.now()}` }] })),
+        updateCustomRole: (r) => setState(s => ({ ...s, customRoles: s.customRoles.map(ro => ro.id === r.id ? r : ro) })),
+        deleteCustomRole: (id) => setState(s => ({ ...s, customRoles: s.customRoles.filter(r => r.id !== id) })),
+        addStaff: (m) => {
+            const userName = currentUser?.name || 'SYSTEM';
+            const meta = createMetadata(userName);
+            setState(s => ({ ...s, staff: [...s.staff, { ...m, id: Date.now(), ...meta } as Staff] }));
+            logAudit('ACTOR_PROVISIONED', 'Staff', m.name, `New identity created with rank ${m.role}`);
+        },
+        updateStaff: (m) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, staff: s.staff.map(st => st.id === m.id ? { ...m, updatedAt: meta.updatedAt } : st) }));
+            logAudit('ACTOR_PROFILE_UPDATED', 'Staff', m.name, 'Credentials or permissions modified');
+        },
+        deleteStaff: (id) => {
+            const victim = state.staff.find(s => s.id === id);
+            setState(s => ({ ...s, staff: s.staff.filter(st => st.id !== id) }));
+            logAudit('ACTOR_REVOKED', 'Staff', victim?.name || id, 'Permanent removal from authoritative registry');
+        },
+        checkInGuest: (payload) => {
+            const newGuestId = Date.now();
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            const newGuest: Guest = { ...payload.guest, id: newGuestId, ...meta };
+            const invoiceNum = `INV-${newGuestId.toString().slice(-6)}`;
+            const transPool = [{ ...payload.charge, id: Date.now() + 1, guestId: newGuestId, type: 'charge', invoiceNumber: invoiceNum, ...meta } as Transaction];
+            if (payload.tax) transPool.push({ ...payload.tax, id: Date.now() + 2, guestId: newGuestId, type: 'charge', invoiceNumber: invoiceNum, ...meta } as Transaction);
+
+            setState(prev => ({
+                ...prev,
+                guests: [...prev.guests, newGuest],
+                transactions: [...prev.transactions, ...transPool],
+                rooms: prev.rooms.map(r => r.id === payload.roomId ? { ...r, status: RoomStatusEnum.Occupied, guestId: newGuestId, updatedAt: meta.updatedAt } : r),
+                reservations: payload.reservationId ? prev.reservations.map(r => r.id === payload.reservationId ? { ...r, status: 'CheckedIn' } : r) : prev.reservations
+            }));
+            logAudit('RESIDENCY_STARTED', 'Guest', newGuest.name, `Check-in complete for Unit ${payload.roomId}`);
+            addSyncLogEntry(`Guest ${newGuest.name} checked into Unit ${payload.roomId}`, 'success');
+        },
+        checkOutGuest: (payload) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            const transPool = payload.payment ? [{ ...payload.payment, id: Date.now(), guestId: payload.guestId, type: 'payment', ...meta } as Transaction] : [];
+            
+            setState(prev => ({
+                ...prev,
+                transactions: [...prev.transactions, ...transPool],
+                rooms: prev.rooms.map(r => r.id === payload.roomId ? { ...r, status: RoomStatusEnum.Dirty, guestId: undefined, updatedAt: meta.updatedAt } : r),
+                reservations: payload.reservationId ? prev.reservations.map(r => r.id === payload.reservationId ? { ...r, status: 'CheckedOut' } : r) : prev.reservations
+            }));
+            
+            logAudit('RESIDENCY_TERMINATED', 'Guest', payload.guestId, `Checkout and fiscal settlement complete for Unit ${payload.roomId}`);
+            addSyncLogEntry(`Residency vacated for Unit ${payload.roomId}`, 'success');
+        },
+        updateReservation: (res) => {
+            setState(s => ({ ...s, reservations: s.reservations.map(r => r.id === res.id ? { ...res, updatedAt: new Date().toISOString() } : r) }));
+            logAudit('RESERVATION_MODIFIED', 'Reservation', res.guestName, `Manifest updated for entry #${res.id}`);
+        },
+        approveReservation: (id) => {
+            const res = state.reservations.find(r => r.id === id);
+            if (!res) return;
+            setState(s => ({ ...s, reservations: s.reservations.map(r => r.id === id ? { ...r, status: 'Confirmed', updatedAt: new Date().toISOString() } : r) }));
+            logAudit('RESERVATION_APPROVED', 'Reservation', res.guestName, `Pending entry #${id} transitioned to Confirmed`);
+            addSyncLogEntry(`Reservation #${id} for ${res.guestName} Approved`, 'success');
+        },
         addSyncLogEntry,
-        addInventoryItem,
-        updateInventoryItem,
-        deleteInventoryItem,
-        addSupplier,
-        updateSupplier,
-        deleteSupplier
-    }), [state, currentUser]);
+        updateRoomStatus: (id, status, guestId) => {
+            const room = state.rooms.find(r => r.id === id);
+            setState(s => ({ ...s, rooms: s.rooms.map(r => r.id === id ? { ...r, status, guestId, updatedAt: new Date().toISOString() } : r) }));
+            logAudit('INFRASTRUCTURE_STATE_CHANGE', 'Room', room?.number || id, `Unit status set to ${status}`);
+        },
+        updateHousekeepingStatus: (id, status) => {
+            const room = state.rooms.find(r => r.id === id);
+            setState(s => ({ ...s, rooms: s.rooms.map(r => r.id === id ? { ...r, housekeepingStatus: status, updatedAt: new Date().toISOString() } : r) }));
+            logAudit('HYGIENE_STATUS_MODIFIED', 'Housekeeping', room?.number || id, `Condition recorded as ${status}`);
+        },
+        addTransaction: (t) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, transactions: [...s.transactions, { ...t, id: Date.now(), ...meta } as Transaction] }));
+            logAudit('FISCAL_POSTING', 'Accounting', t.description, `New entry recorded: ₦${t.amount.toLocaleString()}`);
+        },
+        deleteTransaction: (id) => setState(s => ({ ...s, transactions: s.transactions.filter(t => t.id !== id) })),
+        addWalkInTransaction: (t) => {
+            setState(s => ({ ...s, walkInTransactions: [...s.walkInTransactions, { ...t, id: Date.now(), date: new Date().toISOString().split('T')[0] }] }));
+            logAudit('EXTERNAL_REVENUE_CAPTURED', 'POS', t.service, `Walk-in settlement of ₦${t.amountPaid.toLocaleString()}`);
+        },
+        addOrder: (o) => setState(s => ({ ...s, orders: [...s.orders, { ...o, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as Order] })),
+        updateOrderStatus: (id, st) => {
+            setState(s => ({ ...s, orders: s.orders.map(o => o.id === id ? { ...o, status: st, updatedAt: new Date().toISOString() } : o) }));
+            logAudit('ORDER_STATE_TRANSITION', 'Catering', id, `Service state moved to ${st}`);
+        },
+        addEmployee: (e) => {
+            const id = Date.now();
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, employees: [...s.employees, { ...e, id, ...meta } as Employee] }));
+            logAudit('OPERATIVE_REGISTERED', 'HR', e.name, 'New identity profile archived');
+        },
+        updateEmployee: (e) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, employees: s.employees.map(emp => emp.id === e.id ? { ...e, updatedAt: meta.updatedAt } : emp) }));
+            logAudit('OPERATIVE_PROFILE_MODIFIED', 'HR', e.name, 'Profile metadata updated');
+        },
+        deleteEmployee: (id) => {
+            const emp = state.employees.find(e => e.id === id);
+            setState(s => ({ ...s, employees: s.employees.filter(e => e.id !== id) }));
+            logAudit('OPERATIVE_REMOVED', 'HR', emp?.name || id, 'Permanent removal of operative identity');
+        },
+        addReservation: (r) => setState(s => ({ ...s, reservations: [...s.reservations, { ...r, id: Date.now(), status: 'Pending', paymentStatus: PaymentStatus.Pending, ...createMetadata('SYSTEM') } as Reservation] })),
+        updateGuestDetails: (id, g) => setState(s => ({ ...s, guests: s.guests.map(gu => gu.id === id ? { ...gu, ...g, updatedAt: new Date().toISOString() } : gu) })),
+        addMaintenanceRequest: (req) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, maintenanceRequests: [...s.maintenanceRequests, { ...req, id: Date.now(), reportedAt: new Date().toISOString(), status: MaintenanceStatus.Reported, ...meta } as MaintenanceRequest] }));
+            logAudit('INFRASTRUCTURE_FAULT_LOGGED', 'Engineering', req.location, `Urgency: ${req.priority}`);
+        },
+        updateMaintenanceRequestStatus: (id, status) => setState(s => ({ ...s, maintenanceRequests: s.maintenanceRequests.map(r => r.id === id ? { ...r, status, updatedAt: new Date().toISOString() } : r) })),
+        moveGuest: (p) => {
+            setState(s => ({
+                ...s,
+                rooms: s.rooms.map(r => {
+                    if (r.id === p.oldRoomId) return { ...r, status: RoomStatusEnum.Vacant, guestId: undefined };
+                    if (r.id === p.newRoomId) return { ...r, status: RoomStatusEnum.Occupied, guestId: p.guestId };
+                    return r;
+                })
+            }));
+            logAudit('RESIDENCY_RELOCATED', 'Reception', p.guestId, `Moved from Unit ${p.oldRoomId} to ${p.newRoomId}`);
+        },
+        updateRate: (type, rate, cur) => setState(s => ({ ...s, roomTypes: s.roomTypes.map(rt => rt.name === type ? { ...rt, rates: { ...rt.rates, [cur]: rate } } : rt) })),
+        addRoomType: (rt) => setState(s => ({ ...s, roomTypes: [...s.roomTypes, { ...rt, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as RoomType] })),
+        updateRoomType: (rt) => setState(s => ({ ...s, roomTypes: s.roomTypes.map(r => r.id === rt.id ? rt : r) })),
+        deleteRoomType: (id) => setState(s => ({ ...s, roomTypes: s.roomTypes.filter(r => r.id !== id) })),
+        addRoom: (r) => {
+            // Find the associated RoomType to inherit the rate
+            const matchingType = state.roomTypes.find(rt => rt.name === r.type);
+            const rate = matchingType ? matchingType.rates.NGN : 0;
+            
+            setState(s => ({ 
+                ...s, 
+                rooms: [...s.rooms, { 
+                    ...r, 
+                    id: Date.now(), 
+                    rate, 
+                    status: RoomStatusEnum.Vacant, 
+                    housekeepingStatus: HousekeepingStatus.Clean, 
+                    isActive: true, 
+                    ...createMetadata(currentUser?.name || 'SYSTEM') 
+                } as Room] 
+            }));
+            logAudit('UNIT_DEPLOYED', 'Infrastructure', r.number, `Unit mapped to category ${r.type}`);
+        },
+        updateRoom: (r) => setState(s => ({ ...s, rooms: s.rooms.map(room => room.id === r.id ? r : room) })),
+        deleteRoom: (id) => setState(s => ({ ...s, rooms: s.rooms.filter(r => r.id !== id) })),
+        clearAllData: () => { localStorage.removeItem('tide_pms_prod_v4'); window.location.reload(); },
+        addLoyaltyPoints: (id, pts, desc) => setState(s => ({ ...s, guests: s.guests.map(g => g.id === id ? { ...g, loyaltyPoints: g.loyaltyPoints + pts } : g), loyaltyTransactions: [...s.loyaltyTransactions, { id: Date.now(), guestId: id, points: pts, description: desc, date: new Date().toISOString().split('T')[0] }] })),
+        redeemLoyaltyPoints: async (id, pts) => { 
+            const g = state.guests.find(g => g.id === id);
+            if (!g || g.loyaltyPoints < pts) return { success: false, message: 'Insufficient points' };
+            setState(s => ({ ...s, guests: s.guests.map(guest => guest.id === id ? { ...guest, loyaltyPoints: guest.loyaltyPoints - pts } : guest) }));
+            return { success: true, message: 'Points redeemed' };
+        },
+        addCityLedgerAccount: (a) => setState(s => ({ ...s, cityLedgerAccounts: [...s.cityLedgerAccounts, { ...a, id: Date.now(), currentBalance: 0, ...createMetadata(currentUser?.name || 'SYSTEM') } as CityLedgerAccount] })),
+        postToCityLedger: (t) => {
+            setState(s => ({ ...s, cityLedgerTransactions: [...s.cityLedgerTransactions, { ...t, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as CityLedgerTransaction] }));
+            logAudit('CORPORATE_LEDGER_POSTING', 'Finance', t.accountId, 'External account activity recorded');
+        },
+        addInventoryItem: (i) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, inventory: [...s.inventory, { ...i, id: Date.now(), ...meta } as InventoryItem] }));
+            logAudit('RESOURCE_INDUCTED', 'Logistics', i.name, 'New inventory item catalogued');
+        },
+        updateInventoryItem: (i, m) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            if (m) setState(s => ({ ...s, inventory: s.inventory.map(it => it.id === i.id ? i : it), inventoryMovements: [{ ...m, itemId: i.id, id: Date.now(), ...meta } as InventoryMovement, ...s.inventoryMovements] }));
+            else setState(s => ({ ...s, inventory: s.inventory.map(it => it.id === i.id ? i : it) }));
+            if (m) logAudit('STOCK_LOG_ENTRY', 'Logistics', i.name, `Inventory adjustment: ${m.type} [${m.quantity}]`);
+        },
+        deleteInventoryItem: (id) => setState(s => ({ ...s, inventory: s.inventory.filter(i => i.id !== id) })),
+        addSupplier: (sup) => setState(s => ({ ...s, suppliers: [...s.suppliers, { ...sup, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as Supplier] })),
+        updateSupplier: (sup) => setState(s => ({ ...s, suppliers: s.suppliers.map(s => s.id === sup.id ? sup : s) })),
+        deleteSupplier: (id) => setState(s => ({ ...s, suppliers: s.suppliers.filter(s => s.id !== id) })),
+        addCateringAsset: (a) => setState(s => ({ ...s, cateringAssets: [...s.cateringAssets, { ...a, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as CateringAsset] })),
+        updateCateringAsset: (a) => setState(s => ({ ...s, cateringAssets: s.cateringAssets.map(ast => ast.id === a.id ? a : ast) })),
+        deleteCateringAsset: (id) => setState(s => ({ ...s, cateringAssets: s.cateringAssets.filter(a => a.id !== id) })),
+        addEvent: (e) => {
+            setState(s => ({ ...s, events: [...s.events, { ...e, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as Event] }));
+            logAudit('EVENT_AUTHORIZED', 'Catering', e.clientName, 'Manifest finalized and assets allocated');
+        },
+        updateEvent: (e) => setState(s => ({ ...s, events: s.events.map(ev => ev.id === e.id ? e : ev) })),
+        setStopSell: (st) => setState(s => ({ ...s, stopSell: st })),
+        setTaxSettings: (tx) => setState(s => ({ ...s, taxSettings: tx })),
+        addRatePlan: (p) => setState(s => ({ ...s, ratePlans: [...s.ratePlans, { ...p, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as RatePlan] })),
+        updateRatePlan: (p) => setState(s => ({ ...s, ratePlans: s.ratePlans.map(rp => rp.id === p.id ? p : rp) })),
+        deleteRatePlan: (id) => setState(s => ({ ...s, ratePlans: s.ratePlans.filter(p => p.id !== id) })),
+        addDiscountRule: (r) => setState(s => ({ ...s, discountRules: [...s.discountRules, { ...r, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as DiscountRule] })),
+        updateDiscountRule: (r) => setState(s => ({ ...s, discountRules: s.discountRules.map(dr => dr.id === r.id ? r : dr) })),
+        deleteDiscountRule: (id) => setState(s => ({ ...s, discountRules: s.discountRules.filter(r => r.id !== id) })),
+        addTaxCharge: (c) => setState(s => ({ ...s, taxCharges: [...s.taxCharges, { ...c, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as TaxCharge] })),
+        updateTaxCharge: (c) => setState(s => ({ ...s, taxCharges: s.taxCharges.map(tc => tc.id === c.id ? c : tc) })),
+        deleteTaxCharge: (id) => setState(s => ({ ...s, taxCharges: s.taxCharges.filter(c => c.id !== id) })),
+        addExpense: (ex) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, expenses: [...s.expenses, { ...ex, id: Date.now(), ...meta } as Expense] }));
+            logAudit('FISCAL_EXPENDITURE', 'Accounting', ex.category, `Expenditure of ₦${ex.amount.toLocaleString()} logged`);
+        },
+        deleteExpense: (id) => setState(s => ({ ...s, expenses: s.expenses.filter(e => e.id !== id) })),
+        addMenuItem: (mi) => setState(s => ({ ...s, menuItems: [...s.menuItems, { ...mi, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as MenuItem] })),
+        updateMenuItem: (mi) => setState(s => ({ ...s, menuItems: s.menuItems.map(item => item.id === mi.id ? mi : item) })),
+        deleteMenuItem: (id) => setState(s => ({ ...s, menuItems: s.menuItems.filter(i => i.id !== id) })),
+        addSecurityIncident: (inc) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, securityIncidents: [...s.securityIncidents, { ...inc, id: Date.now(), timestamp: new Date().toISOString(), status: 'Open', ...meta } as SecurityIncident] }));
+            logAudit('SECURITY_EVENT_ARCHIVED', 'Security', inc.type, `Threat Level ${inc.severity} logged at ${inc.location}`);
+        },
+        updateSecurityIncidentStatus: (id, st) => setState(s => ({ ...s, securityIncidents: s.securityIncidents.map(i => i.id === id ? { ...i, status: st } : i) })),
+    }), [state, currentUser, clientIp]);
 
     return (
         <HotelDataContext.Provider value={value}>

@@ -41,7 +41,8 @@ export const INITIAL_TAX_SETTINGS: TaxSettings = {
     rate: 7.5,
 };
 
-export const INITIAL_STAFF: Staff[] = [
+// FIX: Removed strict type annotation to allow partial objects before BaseEntity fields are added by the provider.
+export const INITIAL_STAFF = [
     { id: 1, name: 'Faith', email: 'faith@tide.com', password: 'F@i7h#92X!', role: UserRole.Manager },
     { id: 2, name: 'Goodness', email: 'goodness@tide.com', password: 'G00d*N3ss$4', role: UserRole.FrontDesk },
     { id: 3, name: 'Benjamin', email: 'benjamin@tide.com', password: 'B3nJ&9m_84', role: UserRole.Manager },
@@ -53,16 +54,16 @@ export const INITIAL_STAFF: Staff[] = [
     { id: 9, name: 'Francis', email: 'francis@tide.com', password: 'Fr@nC1$62!', role: UserRole.Manager },
 ];
 
-// FIX: Added 'isActive: true' to room types to satisfy the RoomType interface.
-export const INITIAL_ROOM_TYPES: RoomType[] = [
+// FIX: Removed strict type annotations to allow partial objects before BaseEntity fields are added by the provider.
+export const INITIAL_ROOM_TYPES = [
     { id: 1, name: 'Standard Room', rates: { NGN: 45000, USD: 60 }, capacity: 2, isActive: true },
     { id: 2, name: 'Deluxe Room', rates: { NGN: 65000, USD: 85 }, capacity: 2, isActive: true },
     { id: 3, name: 'Executive Suite', rates: { NGN: 95000, USD: 125 }, capacity: 3, isActive: true },
     { id: 4, name: 'Presidential Suite', rates: { NGN: 250000, USD: 330 }, capacity: 4, isActive: true },
 ];
 
-// FIX: Added 'isActive: true' to initial rooms to satisfy the Room interface.
-export const INITIAL_ROOMS: Room[] = [
+// FIX: Removed strict type annotations to allow partial objects before BaseEntity fields are added by the provider.
+export const INITIAL_ROOMS = [
     { id: 101, number: '101', type: 'Standard Room', rate: 45000, status: RoomStatus.Occupied, guestId: 1, isActive: true },
     { id: 102, number: '102', type: 'Standard Room', rate: 45000, status: RoomStatus.Vacant, isActive: true },
     { id: 103, number: '103', type: 'Standard Room', rate: 45000, status: RoomStatus.Dirty, isActive: true },
@@ -78,7 +79,8 @@ export const INITIAL_ROOMS: Room[] = [
     { id: 401, number: '401', type: 'Presidential Suite', rate: 250000, status: RoomStatus.Vacant, isActive: true },
 ];
 
-export const INITIAL_RESERVATIONS: Reservation[] = [
+// FIX: Removed strict type annotations as status and BaseEntity fields are added in the context provider.
+export const INITIAL_RESERVATIONS = [
     {
         id: 1,
         guestName: 'John Doe',
@@ -117,6 +119,7 @@ export const ROOM_STATUS_THEME = {
   [RoomStatus.Dirty]: { light: 'bg-red-100', dark: 'dark:bg-red-900/30', text: 'text-red-800 dark:text-red-200', border: 'border-red-500', badge: 'bg-red-500', fill: '#ef4444' },
   [RoomStatus.Cleaning]: { light: 'bg-yellow-100', dark: 'dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-200', border: 'border-yellow-500', badge: 'bg-yellow-500', fill: '#eab308' },
   [RoomStatus.OutOfOrder]: { light: 'bg-slate-300', dark: 'dark:bg-slate-700', text: 'text-slate-800 dark:text-slate-200', border: 'border-slate-500', badge: 'bg-slate-500', fill: '#64748b' },
+  [RoomStatus.Reserved]: { light: 'bg-indigo-100', dark: 'dark:bg-indigo-900/30', text: 'text-indigo-800 dark:text-indigo-200', border: 'border-indigo-500', badge: 'bg-indigo-500', fill: '#6366f1' },
 };
 
 export const MAINTENANCE_PRIORITY_THEME = {
@@ -150,13 +153,15 @@ export const LOYALTY_TIER_THEME = {
 };
 
 // --- Inventory Constants ---
-export const INITIAL_SUPPLIERS: Supplier[] = [
+// FIX: Removed strict type annotations to allow partial objects before BaseEntity fields are added by the provider.
+export const INITIAL_SUPPLIERS = [
     { id: 1, name: 'Hotel Linens Co.', contactPerson: 'John Doe', email: 'orders@linens.com', phone: '123-456-7890', address: '123 Textile Way', category: InventoryCategory.Housekeeping },
     { id: 2, name: 'Fresh Foods Ltd.', contactPerson: 'Jane Smith', email: 'sales@freshfoods.com', phone: '098-765-4321', address: '456 Market St', category: InventoryCategory.FoodAndBeverage },
     { id: 3, name: 'City Beverages', contactPerson: 'Mike Brown', email: 'mike@citybev.com', phone: '555-123-4567', address: '789 Drink Ave', category: InventoryCategory.FoodAndBeverage }
 ];
 
-export const INITIAL_INVENTORY: InventoryItem[] = [
+// FIX: Removed strict type annotations to allow partial objects before BaseEntity fields are added by the provider.
+export const INITIAL_INVENTORY = [
     { id: 1, name: 'Bath Towels', category: InventoryCategory.Housekeeping, quantity: 150, unit: 'pcs', reorderLevel: 50, costPerUnit: 2500, supplierId: 1, location: 'Linen Closet A' },
     { id: 2, name: 'Hand Towels', category: InventoryCategory.Housekeeping, quantity: 200, unit: 'pcs', reorderLevel: 80, costPerUnit: 1200, supplierId: 1, location: 'Linen Closet A' },
     { id: 3, name: 'Shampoo (Mini)', category: InventoryCategory.Housekeeping, quantity: 40, unit: 'bottles', reorderLevel: 100, costPerUnit: 150, supplierId: 1, location: 'Storage Room 1' },
