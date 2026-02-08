@@ -19,7 +19,7 @@ export const Settings: React.FC = () => {
     const isAuthorized = currentUser?.role === UserRole.Manager || currentUser?.role === UserRole.Admin || currentUser?.role === UserRole.SuperAdmin;
 
     const [activeTab, setActiveTab] = useState<'profile' | 'infrastructure' | 'financials'>('profile');
-    const [infraSubTab, setInfraSubTab] = useState<'units' | 'rates' | 'categories'>('categories');
+    const [infraSubTab, setInfraSubTab] = useState<'categories' | 'units' | 'rates'>('categories');
     
     const [localProp, setLocalProp] = useState(propertyInfo);
     const [roomFilter, setRoomFilter] = useState('');
@@ -134,6 +134,15 @@ export const Settings: React.FC = () => {
         setIsRatePlanModalOpen(false);
     };
 
+    const BRAND_COLORS = [
+        { id: 'indigo', hex: '#4f46e5', label: 'Inductive Indigo' },
+        { id: 'emerald', hex: '#10b981', label: 'Ecosystem Emerald' },
+        { id: 'rose', hex: '#e11d48', label: 'Authority Rose' },
+        { id: 'amber', hex: '#f59e0b', label: 'Logic Amber' },
+        { id: 'sky', hex: '#0ea5e9', label: 'Horizon Sky' },
+        { id: 'slate', hex: '#334155', label: 'Industrial Slate' }
+    ];
+
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -155,40 +164,40 @@ export const Settings: React.FC = () => {
                             <Card title="Corporate Identity Manifest">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Entity nomenclature (Hotel Name)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Entity nomenclature</label>
                                         <input type="text" value={localProp.name} onChange={e => setLocalProp({...localProp, name: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-black uppercase text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Manifest Tagline (Appears on Receipts)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Manifest Tagline</label>
                                         <input type="text" value={localProp.tagline || ''} onChange={e => setLocalProp({...localProp, tagline: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-bold italic text-xs focus:border-indigo-500 outline-none transition-all shadow-inner" placeholder="Excellence in Enterprise Logic..." />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Communication Endpoint (Phone)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Communication Endpoint</label>
                                         <input type="tel" value={localProp.phone} onChange={e => setLocalProp({...localProp, phone: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-mono font-bold text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Digital Correspondence (Email)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Digital Correspondence</label>
                                         <input type="email" value={localProp.email} onChange={e => setLocalProp({...localProp, email: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-mono font-bold text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Physical Node Registry (Full Address)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Physical Node Registry</label>
                                         <textarea value={localProp.address} onChange={e => setLocalProp({...localProp, address: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase focus:border-indigo-500 outline-none transition-all h-24 shadow-inner" />
                                     </div>
                                 </div>
                             </Card>
 
-                            <Card title="Fiscal Settlement Protocol (Bank Details)">
+                            <Card title="Fiscal Settlement Protocol">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Bank Designation</label>
                                         <input type="text" value={localProp.bankName || ''} onChange={e => setLocalProp({...localProp, bankName: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-black uppercase text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" placeholder="e.g. Zenith Bank" />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Protocol Serial (Account Number)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Protocol Serial</label>
                                         <input type="text" value={localProp.accountNumber || ''} onChange={e => setLocalProp({...localProp, accountNumber: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-mono font-black text-sm focus:border-indigo-500 outline-none shadow-inner" />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Account Beneficiary nomenclature</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1 tracking-[0.15em]">Account Beneficiary</label>
                                         <input type="text" value={localProp.accountName || ''} onChange={e => setLocalProp({...localProp, accountName: e.target.value})} disabled={!isAuthorized} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-black uppercase text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" />
                                     </div>
                                 </div>
@@ -196,6 +205,29 @@ export const Settings: React.FC = () => {
                         </div>
                         
                         <div className="space-y-6">
+                            <Card title="Visual Identity Configuration">
+                                <p className="text-[9px] font-black uppercase text-slate-400 mb-4 tracking-widest">Chromatic Interface Brand Protocol</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {BRAND_COLORS.map(color => (
+                                        <button
+                                            key={color.id}
+                                            onClick={() => setLocalProp({...localProp, brandColor: color.id})}
+                                            disabled={!isAuthorized}
+                                            title={color.label}
+                                            className={`group relative h-12 rounded-xl border-2 transition-all overflow-hidden ${localProp.brandColor === color.id ? 'border-indigo-500 ring-2 ring-indigo-500/20 ring-offset-2 dark:ring-offset-slate-900' : 'border-slate-100 dark:border-slate-800 hover:border-indigo-300'}`}
+                                            style={{ backgroundColor: color.hex }}
+                                        >
+                                            {localProp.brandColor === color.id && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[8px] font-bold text-slate-500 mt-4 italic">Authority color dictates Sidebar accents and Global UI nodes.</p>
+                            </Card>
+
                             <Card title="Interface Protocol">
                                 <div className="space-y-4">
                                     <div>
@@ -206,11 +238,11 @@ export const Settings: React.FC = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Induction (Check-In)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Induction</label>
                                         <input type="time" value={localProp.checkInTime} onChange={e => setLocalProp({...localProp, checkInTime: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs" />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Release (Check-Out)</label>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Release</label>
                                         <input type="time" value={localProp.checkOutTime} onChange={e => setLocalProp({...localProp, checkOutTime: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs" />
                                     </div>
                                 </div>
@@ -236,10 +268,10 @@ export const Settings: React.FC = () => {
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Hierarchy Registry</h2>
                                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mt-1">Autonomous Category Definition & Capacity Logic</p>
                                 </div>
-                                <Button onClick={openAddCategory} className="flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-                                    Define Category
-                                </Button>
+                                <button onClick={openAddCategory} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg transition-all flex items-center gap-2 group">
+                                    <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                                    <span className="text-[10px] font-black uppercase pr-2">Define Category</span>
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -278,10 +310,10 @@ export const Settings: React.FC = () => {
                                     />
                                     <svg className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </div>
-                                <Button onClick={openAddRoom} className="flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-                                    Deploy Unit Node
-                                </Button>
+                                <button onClick={openAddRoom} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg transition-all flex items-center gap-2 group">
+                                    <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                                    <span className="text-[10px] font-black uppercase pr-2">Deploy Unit Node</span>
+                                </button>
                             </div>
 
                             <Card>
@@ -321,10 +353,10 @@ export const Settings: React.FC = () => {
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Rack Rate Architecture</h2>
                                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mt-1">Named Pricing Manifests & Global Tiers</p>
                                  </div>
-                                 <Button onClick={() => setIsRatePlanModalOpen(true)} className="flex items-center gap-2">
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-                                     Define Rack Rate
-                                 </Button>
+                                 <button onClick={() => setIsRatePlanModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg transition-all flex items-center gap-2 group">
+                                    <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                                    <span className="text-[10px] font-black uppercase pr-2">Define Rack Rate</span>
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -376,10 +408,10 @@ export const Settings: React.FC = () => {
                             <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Fiscal Component Matrix</h2>
                             <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mt-1">Manage Statutory Levies & Tax Profiles</p>
                         </div>
-                        <Button onClick={() => { setEditingTax(null); setTaxForm({ name: '', rate: 0, isInclusive: true, showOnReceipt: true }); setIsTaxModalOpen(true); }} className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-                            Add Tax Component
-                        </Button>
+                        <button onClick={() => { setEditingTax(null); setTaxForm({ name: '', rate: 0, isInclusive: true, showOnReceipt: true }); setIsTaxModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg transition-all flex items-center gap-2 group">
+                            <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
+                            <span className="text-[10px] font-black uppercase pr-2">Add Tax Component</span>
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -402,8 +434,8 @@ export const Settings: React.FC = () => {
                 </div>
             )}
 
-            {/* MODAL: DEFINE CATEGORY HIERARCHY */}
-            <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title={editingCategory ? "Modify Category Profile" : "Category Hierarchy Definition"}>
+            {/* MODAL: DEFINE CATEGORY HIERARCHY (AND RACK RATES) */}
+            <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title={editingCategory ? "Modify Category Profile & Rack Rates" : "Category Hierarchy Definition"}>
                 <div className="space-y-6">
                     <div>
                         <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Category Nomenclature</label>
@@ -416,7 +448,7 @@ export const Settings: React.FC = () => {
                         </div>
                     </div>
                     <div className="space-y-4">
-                         <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-50 dark:border-indigo-900/20 pb-2">Master Base Rates</h4>
+                         <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-50 dark:border-indigo-900/20 pb-2">Master Rack Rates (Base Pricing)</h4>
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Base Rate (₦)</label>
@@ -496,7 +528,7 @@ export const Settings: React.FC = () => {
                 </div>
             </Modal>
 
-            {/* MODAL: DEFINE RACK RATE */}
+            {/* MODAL: DEFINE RACK RATE PLAN */}
             <Modal isOpen={isRatePlanModalOpen} onClose={() => setIsRatePlanModalOpen(false)} title="Rack Rate Definition">
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4">
