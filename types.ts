@@ -91,17 +91,21 @@ export interface SystemIntegrationSettings {
 
 export interface PropertyInfo {
   name: string;
+  tagline?: string;
   address: string;
   phone: string;
   email: string;
   website: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
   currency: 'NGN' | 'USD';
   timezone: string;
   language: string;
   logo?: string;
   checkInTime: string;
   checkOutTime: string;
-  brandColor?: string; // e.g. 'indigo', 'emerald', 'rose'
+  brandColor?: string;
 }
 
 export interface BaseEntity {

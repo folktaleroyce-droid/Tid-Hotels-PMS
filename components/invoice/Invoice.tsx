@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Guest, Transaction, TaxSettings } from '../../types.ts';
 import { Button } from '../common/Button.tsx';
+import { useHotelData } from '../../hooks/useHotelData.ts';
 
 interface InvoiceProps {
     guest: Guest;
@@ -10,6 +11,7 @@ interface InvoiceProps {
 }
 
 export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettings }) => {
+    const { propertyInfo } = useHotelData();
 
     const invoiceData = useMemo(() => {
         // Find charges that are not taxes
@@ -96,11 +98,16 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
                 <div className="printable-invoice max-h-[75vh] overflow-y-auto p-4 md:p-8 bg-white dark:bg-slate-900 rounded-xl">
                     <header className="flex justify-between items-start pb-6 border-b-4 border-slate-900">
                         <div>
-                            <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tax Invoice</h1>
-                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Smartwave Enterprise HUB</p>
+                            <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{propertyInfo.name}</h1>
+                            {propertyInfo.tagline && <p className="text-[10px] font-black uppercase text-indigo-600 tracking-widest mt-2">{propertyInfo.tagline}</p>}
+                            <div className="mt-4 space-y-1">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase leading-tight max-w-xs">{propertyInfo.address}</p>
+                                <p className="text-[10px] font-mono text-slate-400 uppercase">TEL: {propertyInfo.phone} | EMAIL: {propertyInfo.email}</p>
+                            </div>
                         </div>
                         <div className="text-right">
-                            <p className="font-black text-xs uppercase text-slate-400">Reference Protocol</p>
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Tax Invoice</h2>
+                            <p className="font-black text-xs uppercase text-slate-400 mt-2">Reference Protocol</p>
                             <p className="font-black text-lg">#{guest.id}-{new Date().getTime().toString().slice(-6)}</p>
                             <p className="text-xs font-bold text-slate-500 uppercase">Date: {new Date().toISOString().split('T')[0]}</p>
                         </div>
@@ -141,8 +148,21 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
                         </table>
                     </section>
 
-                    <section className="flex justify-end mt-10">
-                        <div className="w-full max-w-xs space-y-3">
+                    <section className="mt-10 grid grid-cols-2 gap-12">
+                        <div className="space-y-4">
+                            {(propertyInfo.bankName || propertyInfo.accountNumber) && (
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                                    <h3 className="font-black text-[9px] uppercase text-indigo-600 mb-3 tracking-[0.2em]">Fiscal Settlement Protocol</h3>
+                                    <div className="space-y-1">
+                                        <p className="text-[11px] font-bold uppercase text-slate-600">Bank: <span className="text-slate-900 dark:text-white">{propertyInfo.bankName || 'NOT SPECIFIED'}</span></p>
+                                        <p className="text-[11px] font-bold uppercase text-slate-600">Account: <span className="text-slate-900 dark:text-white font-mono">{propertyInfo.accountNumber || 'NOT SPECIFIED'}</span></p>
+                                        <p className="text-[11px] font-bold uppercase text-slate-600">Name: <span className="text-slate-900 dark:text-white">{propertyInfo.accountName || 'NOT SPECIFIED'}</span></p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="w-full space-y-3">
                             <div className="flex justify-between items-center text-xs font-bold uppercase text-slate-500">
                                 <span>Subtotal</span>
                                 <span className="font-mono text-slate-900 dark:text-white">₦{invoiceData.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>

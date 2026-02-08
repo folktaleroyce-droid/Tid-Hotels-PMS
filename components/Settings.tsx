@@ -78,7 +78,7 @@ export const Settings: React.FC = () => {
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">System Architecture</h1>
                 <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mt-2">Operational Logic & Infrastructure Matrix</p>
               </div>
-              <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-300 dark:border-slate-700">
+              <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700">
                 <button onClick={() => setActiveTab('profile')} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'profile' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>General Profile</button>
                 <button onClick={() => setActiveTab('infrastructure')} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'infrastructure' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Infrastructure Matrix</button>
                 <button onClick={() => setActiveTab('financials')} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'financials' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Statutory Rules</button>
@@ -86,21 +86,74 @@ export const Settings: React.FC = () => {
             </div>
 
             {activeTab === 'profile' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-right">
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card title="Corporate Identity Manifest">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Entity nomenclature</label>
-                                    <input type="text" name="name" value={localProp.name} onChange={e => setLocalProp({...localProp, name: e.target.value})} disabled={!isAuthorized} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold uppercase text-xs focus:ring-2 focus:ring-indigo-600 outline-none" />
+                <div className="animate-fade-in-right space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            <Card title="Corporate Identity Manifest">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Entity nomenclature (Hotel Name)</label>
+                                        <input type="text" value={localProp.name} onChange={e => setLocalProp({...localProp, name: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Manifest Tagline (Appears on Receipts)</label>
+                                        <input type="text" value={localProp.tagline || ''} onChange={e => setLocalProp({...localProp, tagline: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-bold italic text-xs focus:border-indigo-500 outline-none transition-all" placeholder="Excellence in Enterprise Logic..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Communication Endpoint (Phone)</label>
+                                        <input type="tel" value={localProp.phone} onChange={e => setLocalProp({...localProp, phone: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs focus:border-indigo-500 outline-none transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Digital Correspondence (Email)</label>
+                                        <input type="email" value={localProp.email} onChange={e => setLocalProp({...localProp, email: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs focus:border-indigo-500 outline-none transition-all" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Physical Node Registry (Full Address)</label>
+                                        <textarea value={localProp.address} onChange={e => setLocalProp({...localProp, address: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold uppercase focus:border-indigo-500 outline-none transition-all h-20" />
+                                    </div>
                                 </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Address registry</label>
-                                    <input type="text" name="address" value={localProp.address} onChange={e => setLocalProp({...localProp, address: e.target.value})} disabled={!isAuthorized} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 text-xs uppercase focus:ring-2 focus:ring-indigo-600 outline-none" />
+                            </Card>
+
+                            <Card title="Settlement Protocol (Bank Details)">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Bank Designation</label>
+                                        <input type="text" value={localProp.bankName || ''} onChange={e => setLocalProp({...localProp, bankName: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Zenith Bank" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Protocol Serial (Account Number)</label>
+                                        <input type="text" value={localProp.accountNumber || ''} onChange={e => setLocalProp({...localProp, accountNumber: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-xs focus:border-indigo-500 outline-none transition-all" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Account Beneficiary nomenclature</label>
+                                        <input type="text" value={localProp.accountName || ''} onChange={e => setLocalProp({...localProp, accountName: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all" />
+                                    </div>
                                 </div>
-                            </div>
-                        </Card>
-                        {isAuthorized && <Button onClick={handleSaveProfile} className="w-full py-4 text-xs font-black uppercase tracking-widest">Commit modifications</Button>}
+                            </Card>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            <Card title="Interface Protocol">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Operating Currency</label>
+                                        <select value={localProp.currency} onChange={e => setLocalProp({...localProp, currency: e.target.value as any})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none">
+                                            <option value="NGN">NGN (₦)</option>
+                                            <option value="USD">USD ($)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Induction (Check-In)</label>
+                                        <input type="time" value={localProp.checkInTime} onChange={e => setLocalProp({...localProp, checkInTime: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Standard Release (Check-Out)</label>
+                                        <input type="time" value={localProp.checkOutTime} onChange={e => setLocalProp({...localProp, checkOutTime: e.target.value})} disabled={!isAuthorized} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-bold text-xs" />
+                                    </div>
+                                </div>
+                            </Card>
+                            {isAuthorized && <Button onClick={handleSaveProfile} className="w-full py-4 text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95">Commit Global Modifications</Button>}
+                        </div>
                     </div>
                 </div>
             )}
@@ -121,7 +174,7 @@ export const Settings: React.FC = () => {
                                         placeholder="Identify specific node (Room #)..." 
                                         value={roomFilter} 
                                         onChange={e => setRoomFilter(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black uppercase text-[10px] focus:border-indigo-500 outline-none shadow-sm"
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl font-black uppercase text-[10px] focus:border-indigo-500 outline-none shadow-sm transition-all"
                                     />
                                     <svg className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </div>
@@ -142,11 +195,11 @@ export const Settings: React.FC = () => {
                                         <tbody>
                                             {filteredRooms.map(r => (
                                                 <tr key={r.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 transition-colors">
-                                                    <td className="p-4"><span className="font-black text-sm uppercase">Room {r.number}</span></td>
+                                                    <td className="p-4"><span className="font-black text-sm uppercase text-slate-900 dark:text-white">Room {r.number}</span></td>
                                                     <td className="p-4"><span className="text-[10px] font-black uppercase text-indigo-600">{r.type}</span></td>
                                                     <td className="p-4 text-[10px] font-mono text-slate-400">LEVEL_{r.floor}</td>
                                                     <td className="p-4 text-right">
-                                                        <button onClick={() => deleteRoom(r.id)} className="text-red-500 hover:text-red-700 text-[10px] font-black uppercase">Decommission</button>
+                                                        <button onClick={() => deleteRoom(r.id)} className="text-red-500 hover:text-red-700 text-[10px] font-black uppercase transition-all hover:scale-105">Decommission</button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -173,12 +226,11 @@ export const Settings: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Base Room Types - The "Authoritative" Rack */}
                                 <Card title="Authoritative Base Rates" className="border-t-4 border-slate-900 bg-slate-50 dark:bg-slate-950">
                                     <div className="space-y-4">
                                         {roomTypes.map(rt => (
                                             <div key={rt.id} className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800">
-                                                <span className="text-[10px] font-black uppercase text-slate-600">{rt.name}</span>
+                                                <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300">{rt.name}</span>
                                                 <div className="text-right">
                                                     <p className="font-black font-mono text-xs text-indigo-600">₦{rt.rates.NGN.toLocaleString()}</p>
                                                     <p className="text-[9px] font-bold text-slate-400">${rt.rates.USD.toLocaleString()}</p>
@@ -188,7 +240,6 @@ export const Settings: React.FC = () => {
                                     </div>
                                 </Card>
 
-                                {/* User Created Named Rate Plans */}
                                 {ratePlans.map(plan => (
                                     <Card key={plan.id} title={plan.name} className="border-t-4 border-indigo-600 group">
                                         <div className="space-y-4 mb-6">
@@ -215,24 +266,24 @@ export const Settings: React.FC = () => {
             <Modal isOpen={isRoomModalOpen} onClose={() => setIsRoomModalOpen(false)} title="Infrastructure Node Deployment">
                 <div className="space-y-6">
                     <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Unit Nomenclature (Room Number)</label>
-                        <input type="text" value={newRoomForm.number} onChange={e => setNewRoomForm({...newRoomForm, number: e.target.value})} className="w-full p-3 border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-xl font-black uppercase text-xs" placeholder="e.g. 101, 204A" />
+                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Unit Nomenclature (Room Number)</label>
+                        <input type="text" value={newRoomForm.number} onChange={e => setNewRoomForm({...newRoomForm, number: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all" placeholder="e.g. 101, 204A" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Category Hierarchy</label>
-                            <select value={newRoomForm.type} onChange={e => setNewRoomForm({...newRoomForm, type: e.target.value})} className="w-full p-3 border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-xl font-black uppercase text-xs">
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Category Hierarchy</label>
+                            <select value={newRoomForm.type} onChange={e => setNewRoomForm({...newRoomForm, type: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all">
                                 {roomTypes.map(rt => <option key={rt.id} value={rt.name}>{rt.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Level (Floor)</label>
-                            <input type="number" value={newRoomForm.floor} onChange={e => setNewRoomForm({...newRoomForm, floor: parseInt(e.target.value) || 1})} className="w-full p-3 border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-xl font-mono font-black text-xs" />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Level (Floor)</label>
+                            <input type="number" value={newRoomForm.floor} onChange={e => setNewRoomForm({...newRoomForm, floor: parseInt(e.target.value) || 1})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-xs focus:border-indigo-500 outline-none transition-all" />
                         </div>
                     </div>
-                    <div className="pt-6 border-t flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setIsRoomModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort</Button>
-                        <Button onClick={handleAddRoom} className="uppercase font-black text-[10px] px-12 py-4">Authorize Deployment</Button>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-900 flex justify-end gap-3">
+                        <Button variant="secondary" onClick={() => setIsRoomModalOpen(false)} className="uppercase font-black text-[10px] px-8 py-3">Abort</Button>
+                        <Button onClick={handleAddRoom} className="uppercase font-black text-[10px] px-12 py-3 shadow-lg shadow-indigo-600/20">Authorize Deployment</Button>
                     </div>
                 </div>
             </Modal>
@@ -242,26 +293,26 @@ export const Settings: React.FC = () => {
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Plan Nomenclature (Name)</label>
-                            <input type="text" value={newRatePlanForm.name} onChange={e => setNewRatePlanForm({...newRatePlanForm, name: e.target.value})} className="w-full p-3 border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-xl font-black uppercase text-xs" placeholder="e.g. CHRISTMAS RACK 2024" />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Plan Nomenclature (Name)</label>
+                            <input type="text" value={newRatePlanForm.name} onChange={e => setNewRatePlanForm({...newRatePlanForm, name: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all" placeholder="e.g. CHRISTMAS RACK 2024" />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Operational Logic (Description)</label>
-                            <textarea value={newRatePlanForm.description} onChange={e => setNewRatePlanForm({...newRatePlanForm, description: e.target.value})} className="w-full p-3 border-2 border-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-xl text-xs italic h-20" placeholder="Describe the purpose or triggers for this rate plan..." />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Operational Logic (Description)</label>
+                            <textarea value={newRatePlanForm.description} onChange={e => setNewRatePlanForm({...newRatePlanForm, description: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs italic font-bold focus:border-indigo-500 outline-none transition-all h-24" placeholder="Describe the purpose or triggers for this rate plan..." />
                         </div>
                     </div>
                     
                     <div className="space-y-4">
-                         <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest border-b pb-2">Category Valuation Matrix</h4>
+                         <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest border-b border-indigo-50 dark:border-indigo-900/40 pb-2">Category Valuation Matrix</h4>
                          <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                              {roomTypes.map(rt => (
                                  <div key={rt.id} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-                                     <span className="text-[10px] font-black uppercase text-slate-500 w-1/3 truncate">{rt.name}</span>
+                                     <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 w-1/3 truncate">{rt.name}</span>
                                      <div className="flex-1 flex gap-2">
                                         <input 
                                             type="number" 
                                             placeholder="₦ Rate" 
-                                            className="w-full p-2 border rounded-lg text-xs font-mono font-bold"
+                                            className="w-full p-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg text-xs font-mono font-black focus:border-indigo-500 outline-none"
                                             onChange={e => setNewRatePlanForm(prev => ({
                                                 ...prev,
                                                 prices: { ...prev.prices, [rt.id]: { ...prev.prices[rt.id], NGN: parseFloat(e.target.value) || 0 } }
@@ -270,7 +321,7 @@ export const Settings: React.FC = () => {
                                         <input 
                                             type="number" 
                                             placeholder="$ Rate" 
-                                            className="w-full p-2 border rounded-lg text-xs font-mono font-bold"
+                                            className="w-full p-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg text-xs font-mono font-black focus:border-indigo-500 outline-none"
                                             onChange={e => setNewRatePlanForm(prev => ({
                                                 ...prev,
                                                 prices: { ...prev.prices, [rt.id]: { ...prev.prices[rt.id], USD: parseFloat(e.target.value) || 0 } }
@@ -282,14 +333,12 @@ export const Settings: React.FC = () => {
                          </div>
                     </div>
 
-                    <div className="pt-6 border-t flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setIsRatePlanModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort</Button>
-                        <Button onClick={handleSaveRatePlan} className="uppercase font-black text-[10px] px-12 py-4">Save Rate Plan</Button>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-900 flex justify-end gap-3">
+                        <Button variant="secondary" onClick={() => setIsRatePlanModalOpen(false)} className="uppercase font-black text-[10px] px-8 py-3">Abort</Button>
+                        <Button onClick={handleSaveRatePlan} className="uppercase font-black text-[10px] px-12 py-3 shadow-lg shadow-indigo-600/20 transition-all active:scale-95">Commit Rate Plan Manifest</Button>
                     </div>
                 </div>
             </Modal>
-
-            {/* Financials & Tax Modals omitted for brevity - logic already validated */}
         </div>
     );
 };

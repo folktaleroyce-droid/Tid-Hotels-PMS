@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { HotelData, InventoryItem, InventoryMovement, BaseEntity } from '../types.ts';
 import { InventoryCategory } from '../types.ts';
@@ -71,7 +72,7 @@ export const Inventory: React.FC<{ hotelData: HotelData }> = ({ hotelData }) => 
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Logistics & Supply</h1>
                 <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mt-2">Enterprise Asset Registry</p>
               </div>
-              <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-300 dark:border-slate-700">
+              <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700">
                 <button onClick={() => setActiveTab('registry')} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'registry' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Stock registry</button>
                 <button onClick={() => setActiveTab('ledger')} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'ledger' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Movement ledger</button>
               </div>
@@ -80,7 +81,7 @@ export const Inventory: React.FC<{ hotelData: HotelData }> = ({ hotelData }) => 
             {activeTab === 'registry' && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                        <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+                        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
                             {['All', ...Object.values(InventoryCategory)].map(cat => (
                             <button 
                                 key={cat} 
@@ -175,13 +176,13 @@ export const Inventory: React.FC<{ hotelData: HotelData }> = ({ hotelData }) => 
             )}
 
             <Modal isOpen={isAdjustModalOpen} onClose={() => setIsAdjustModalOpen(false)} title="Flow Registry">
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Flow protocol</label>
+                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Flow protocol</label>
                         <select 
                             value={adjustForm.type} 
                             onChange={e => setAdjustForm({...adjustForm, type: e.target.value as any})}
-                            className="w-full p-2 border rounded font-black uppercase text-xs"
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all"
                         >
                             <option value="Stock In">Restock / Purchase (+)</option>
                             <option value="Usage">Daily Utilization (-)</option>
@@ -190,51 +191,87 @@ export const Inventory: React.FC<{ hotelData: HotelData }> = ({ hotelData }) => 
                         </select>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Unit Volume</label>
-                        <input type="number" value={adjustForm.qty} onChange={e => setAdjustForm({...adjustForm, qty: parseInt(e.target.value) || 0})} className="w-full p-2 border rounded font-mono font-black text-lg text-center" />
+                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Unit Volume</label>
+                        <input 
+                            type="number" 
+                            value={adjustForm.qty} 
+                            onChange={e => setAdjustForm({...adjustForm, qty: parseInt(e.target.value) || 0})} 
+                            className="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-2xl text-center focus:border-indigo-500 outline-none transition-all"
+                        />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Reference designation</label>
-                        <input type="text" value={adjustForm.reason} onChange={e => setAdjustForm({...adjustForm, reason: e.target.value})} className="w-full p-2 border rounded text-xs uppercase font-bold" placeholder="Designation" />
+                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Reference designation</label>
+                        <input 
+                            type="text" 
+                            value={adjustForm.reason} 
+                            onChange={e => setAdjustForm({...adjustForm, reason: e.target.value})} 
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs uppercase font-black focus:border-indigo-500 outline-none transition-all" 
+                            placeholder="e.g. SHIPMENT #002-L"
+                        />
                     </div>
-                    <div className="pt-4 flex justify-end gap-2 border-t">
-                        <Button variant="secondary" onClick={() => setIsAdjustModalOpen(false)}>Abort</Button>
-                        <Button onClick={handleAdjustStock}>Commit Flow</Button>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-900 flex justify-end gap-3">
+                        <Button variant="secondary" onClick={() => setIsAdjustModalOpen(false)} className="uppercase font-black text-[10px] px-8 py-3">Abort</Button>
+                        <Button onClick={handleAdjustStock} className="uppercase font-black text-[10px] px-12 py-3 shadow-lg shadow-indigo-600/20">Commit Flow</Button>
                     </div>
                 </div>
             </Modal>
 
             <Modal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} title="Operational Enrollment">
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <div>
-                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Resource Nomenclature</label>
-                        <input type="text" value={registerForm.name} onChange={e => setRegisterForm({...registerForm, name: e.target.value})} className="w-full p-2 border rounded font-black uppercase text-xs" />
+                        <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Resource Nomenclature</label>
+                        <input 
+                            type="text" 
+                            value={registerForm.name} 
+                            onChange={e => setRegisterForm({...registerForm, name: e.target.value})} 
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-black uppercase text-xs focus:border-indigo-500 outline-none transition-all"
+                        />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Category Registry</label>
-                            <select value={registerForm.category} onChange={e => setRegisterForm({...registerForm, category: e.target.value as any})} className="w-full p-2 border rounded text-[10px] font-black uppercase">
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Category Registry</label>
+                            <select 
+                                value={registerForm.category} 
+                                onChange={e => setRegisterForm({...registerForm, category: e.target.value as any})} 
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase focus:border-indigo-500 outline-none transition-all"
+                            >
                                 {Object.values(InventoryCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Metric Unit</label>
-                            <input type="text" value={registerForm.unit} onChange={e => setRegisterForm({...registerForm, unit: e.target.value})} className="w-full p-2 border rounded text-xs font-black uppercase" placeholder="pcs/kg/etc" />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Metric Unit</label>
+                            <input 
+                                type="text" 
+                                value={registerForm.unit} 
+                                onChange={e => setRegisterForm({...registerForm, unit: e.target.value})} 
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black uppercase focus:border-indigo-500 outline-none transition-all" 
+                                placeholder="e.g. PCS, KG, BOTTLES"
+                            />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                          <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Cost @ Unit (₦)</label>
-                            <input type="number" value={registerForm.costPerUnit} onChange={e => setRegisterForm({...registerForm, costPerUnit: parseFloat(e.target.value) || 0})} className="w-full p-2 border rounded font-mono font-black text-xs" />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Cost @ Unit (₦)</label>
+                            <input 
+                                type="number" 
+                                value={registerForm.costPerUnit} 
+                                onChange={e => setRegisterForm({...registerForm, costPerUnit: parseFloat(e.target.value) || 0})} 
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-xs focus:border-indigo-500 outline-none transition-all"
+                            />
                          </div>
                          <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Warning threshold</label>
-                            <input type="number" value={registerForm.reorderLevel} onChange={e => setRegisterForm({...registerForm, reorderLevel: parseInt(e.target.value) || 0})} className="w-full p-2 border rounded font-mono font-black text-xs" />
+                            <label className="block text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2 ml-1">Warning threshold</label>
+                            <input 
+                                type="number" 
+                                value={registerForm.reorderLevel} 
+                                onChange={e => setRegisterForm({...registerForm, reorderLevel: parseInt(e.target.value) || 0})} 
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-mono font-black text-xs focus:border-indigo-500 outline-none transition-all"
+                            />
                          </div>
                     </div>
-                    <div className="pt-4 flex justify-end gap-2 border-t">
-                        <Button variant="secondary" onClick={() => setIsRegisterModalOpen(false)}>Abort Enrollment</Button>
-                        <Button onClick={handleRegisterItem}>Enroll Resource</Button>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-900 flex justify-end gap-3">
+                        <Button variant="secondary" onClick={() => setIsRegisterModalOpen(false)} className="uppercase font-black text-[10px] px-8 py-3">Abort Enrollment</Button>
+                        <Button onClick={handleRegisterItem} className="uppercase font-black text-[10px] px-12 py-3 shadow-lg shadow-indigo-600/20">Enroll Resource</Button>
                     </div>
                 </div>
             </Modal>
