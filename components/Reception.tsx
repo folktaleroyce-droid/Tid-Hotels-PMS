@@ -238,7 +238,7 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                         <Button size="sm" onClick={() => setIsNewReservationModalOpen(true)} className="text-[9px] px-2 py-1">+ Manifest</Button>
                     </div>
                     
-                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg mb-4">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
                         <button onClick={() => setFilterStatus('All')} className={`flex-1 py-1 text-[8px] font-black uppercase rounded ${filterStatus === 'All' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600' : 'text-slate-500'}`}>Global</button>
                         <button onClick={() => setFilterStatus('Pending')} className={`flex-1 py-1 text-[8px] font-black uppercase rounded ${filterStatus === 'Pending' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600' : 'text-slate-500'}`}>Waitlist</button>
                         <button onClick={() => setFilterStatus('Confirmed')} className={`flex-1 py-1 text-[8px] font-black uppercase rounded ${filterStatus === 'Confirmed' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600' : 'text-slate-500'}`}>Locked</button>
@@ -312,7 +312,57 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                 </Card>
             </div>
 
-            {/* MODAL: ASSIGN ROOM (INFRASTRUCTURE ALLOCATION) */}
+            {/* MODAL: INDUCTION FORM (CHECK-IN) */}
+            <Modal isOpen={isCheckInModalOpen} onClose={() => setCheckInModalOpen(false)} title="Operational Identity Induction">
+                 <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Profile verification protocol</p>
+                        <Button size="sm" variant="secondary" onClick={() => setIsGuestLookupModalOpen(true)} className="text-[9px] font-black uppercase">Lookup Profile</Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="col-span-2">
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Legal Nomenclature</label>
+                            <input type="text" value={checkInForm.guestName} onChange={e => setCheckInForm({...checkInForm, guestName: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-bold uppercase text-xs" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Terminal Contact (Phone)</label>
+                            <input type="tel" value={checkInForm.guestPhone} onChange={e => setCheckInForm({...checkInForm, guestPhone: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-mono text-xs" />
+                        </div>
+                         <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Identity Protocol (Type)</label>
+                            <select value={checkInForm.idType} onChange={e => setCheckInForm({...checkInForm, idType: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-black uppercase text-xs">
+                                {ID_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Protocol Serial (ID Number)</label>
+                            <input type="text" value={checkInForm.idNumber} onChange={e => setCheckInForm({...checkInForm, idNumber: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-bold text-xs" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Nationality</label>
+                            <input type="text" value={checkInForm.nationality} onChange={e => setCheckInForm({...checkInForm, nationality: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-bold uppercase text-xs" />
+                        </div>
+                        <div className="col-span-2">
+                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Physical Residence Registry (Address)</label>
+                             <textarea value={checkInForm.address} onChange={e => setCheckInForm({...checkInForm, address: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl font-medium text-xs h-20" />
+                        </div>
+                        <div className="col-span-2">
+                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Residency Node Assigned</label>
+                             <div className="p-4 bg-slate-950 text-white rounded-2xl border border-slate-800">
+                                <p className="text-[8px] font-black uppercase opacity-60">Confirmed Inventory Reference</p>
+                                <p className="text-xl font-black uppercase tracking-tighter">UNIT {rooms.find(r => r.id === checkInForm.roomId)?.number || 'AUTO'} — {rooms.find(r => r.id === checkInForm.roomId)?.type || 'WAITING'}</p>
+                             </div>
+                        </div>
+                    </div>
+                    <div className="pt-6 border-t flex justify-end gap-3">
+                         <Button variant="secondary" onClick={() => setCheckInModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort</Button>
+                         <Button onClick={handleCheckIn} className="uppercase font-black text-[10px] px-12 py-4 shadow-xl">Commit Induction</Button>
+                    </div>
+                 </div>
+            </Modal>
+
+            {/* MODAL: ASSIGN ROOM */}
             <Modal isOpen={isAssignModalOpen} onClose={() => setIsAssignModalOpen(false)} title="Authoritative Room Allocation">
                 <div className="space-y-8">
                     <div className="p-6 bg-slate-950 text-white rounded-[2rem] border-2 border-slate-800 shadow-2xl">
@@ -328,35 +378,84 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                              </div>
                         </div>
                     </div>
-
                     <div className="space-y-4">
                         <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Vacant Nodes Matching Category</h4>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-60 overflow-y-auto p-1 custom-scrollbar">
                             {rooms.filter(r => r.type === selectedReservation?.roomType && r.status === RoomStatus.Vacant).map(r => (
-                                <button 
-                                    key={r.id} 
-                                    onClick={() => handleConfirmRoomAssignment(r)}
-                                    className="p-6 border-2 border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-600 hover:shadow-xl transition-all text-left bg-white dark:bg-slate-950 group"
-                                >
+                                <button key={r.id} onClick={() => handleConfirmRoomAssignment(r)} className="p-6 border-2 border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-600 hover:shadow-xl transition-all text-left bg-white dark:bg-slate-950 group">
                                     <p className="font-black text-2xl uppercase tracking-tighter group-hover:text-indigo-600 leading-none">UNIT {r.number}</p>
                                     <p className="text-[10px] font-black text-slate-400 uppercase mt-2">Level {r.floor}</p>
                                 </button>
                             ))}
-                            {rooms.filter(r => r.type === selectedReservation?.roomType && r.status === RoomStatus.Vacant).length === 0 && (
-                                <div className="col-span-full py-10 text-center opacity-30 border-2 border-dashed rounded-3xl">
-                                    <p className="text-xs font-black uppercase">Infrastructure Depleted for Category</p>
-                                </div>
-                            )}
                         </div>
                     </div>
+                    <div className="pt-6 border-t flex justify-end"><Button variant="secondary" onClick={() => setIsAssignModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort Protocol</Button></div>
+                </div>
+            </Modal>
 
-                    <div className="pt-6 border-t flex justify-end">
-                        <Button variant="secondary" onClick={() => setIsAssignModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort Protocol</Button>
+            {/* MODAL: PORTFOLIO */}
+            <Modal isOpen={isPortfolioModalOpen} onClose={() => setIsPortfolioModalOpen(false)} title={`Terminal Folio: ${selectedGuest?.name}`}>
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl">
+                            <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Active unit</p>
+                            <p className="text-xl font-black text-indigo-600 uppercase">UNIT {selectedRoom?.number}</p>
+                            <button onClick={() => setIsMoveModalOpen(true)} className="mt-3 text-[8px] font-black uppercase text-indigo-600 hover:underline flex items-center gap-1">Relocate Resident</button>
+                        </div>
+                        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl text-center">
+                            <p className="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Arrival logic</p>
+                            <p className="text-xl font-black uppercase">{selectedGuest?.arrivalDate}</p>
+                        </div>
+                        <div className="p-6 bg-slate-950 dark:bg-black border-2 border-slate-800 rounded-3xl text-right">
+                            <p className="text-[9px] font-black uppercase text-slate-500 mb-1 tracking-widest">Net Outstandings</p>
+                            <p className="text-2xl font-black text-green-500 font-mono tracking-tighter">₦{selectedGuest ? calculateBalance(selectedGuest.id).toLocaleString() : 0}</p>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-end border-b-2 border-slate-100 dark:border-slate-900 pb-3">
+                            <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.2em]">Fiscal Chronology</h4>
+                            <Button size="sm" onClick={() => setIsPostChargeModalOpen(true)} className="text-[9px] uppercase font-black">+ Post Charge</Button>
+                        </div>
+                        <div className="overflow-x-auto max-h-60 custom-scrollbar border border-slate-100 dark:border-slate-800 rounded-2xl">
+                            <table className="w-full text-left text-[11px]">
+                                <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 border-b">
+                                    <tr><th className="p-4 font-black uppercase text-slate-400">Timeline</th><th className="p-4 font-black uppercase text-slate-400">Designation</th><th className="p-4 font-black uppercase text-slate-400 text-right">Value (₦)</th></tr>
+                                </thead>
+                                <tbody>
+                                    {selectedGuest && transactions.filter(t => t.guestId === selectedGuest.id).map(t => (
+                                        <tr key={t.id} className="border-b border-slate-50 dark:border-slate-900 hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-4 font-mono text-slate-400">{t.date}</td>
+                                            <td className="p-4 font-black uppercase text-slate-900 dark:text-slate-200">{t.description}</td>
+                                            <td className={`p-4 text-right font-black font-mono ${t.amount < 0 ? 'text-green-500' : 'text-slate-900 dark:text-white'}`}>{t.amount.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="pt-6 flex justify-end gap-3 border-t-2 border-slate-100 dark:border-slate-900">
+                         <Button variant="secondary" onClick={() => setIsPortfolioModalOpen(false)} className="uppercase font-black text-[10px] px-8">Dismiss</Button>
+                         <Button variant="danger" onClick={() => { setIsPortfolioModalOpen(false); setIsCheckoutModalOpen(true); setCheckoutForm({ amountPaid: selectedGuest ? calculateBalance(selectedGuest.id).toString() : '0', method: 'Cash' }); }} className="uppercase font-black text-[10px] px-8">Initialize Release</Button>
                     </div>
                 </div>
             </Modal>
 
-            {/* MODAL: MANUAL RESERVATION MANIFEST */}
+            {/* MODAL: ADJUST RESERVATION TIMELINE */}
+            <Modal isOpen={isEditDatesModalOpen} onClose={() => setIsEditDatesModalOpen(false)} title="Operational Timeline Modification">
+                <div className="space-y-6">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                         <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Target Identity</p>
+                         <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white leading-none">{selectedReservation?.guestName}</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Proposed Arrival</label><input type="date" value={editDatesForm.checkInDate} onChange={e => setEditDatesForm({...editDatesForm, checkInDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" /></div>
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Proposed Departure</label><input type="date" value={editDatesForm.checkOutDate} onChange={e => setEditDatesForm({...editDatesForm, checkOutDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" /></div>
+                    </div>
+                    <div className="pt-6 border-t flex justify-end gap-2"><Button variant="secondary" onClick={() => setIsEditDatesModalOpen(false)} className="uppercase font-black text-[10px]">Abort Modification</Button><Button onClick={handleUpdateDates} className="uppercase font-black text-[10px] px-8">Authorize Timeline</Button></div>
+                </div>
+            </Modal>
+
+            {/* MODAL: NEW RESERVATION */}
             <Modal isOpen={isNewReservationModalOpen} onClose={() => setIsNewReservationModalOpen(false)} title="New Reservation Manifest">
                 <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="grid grid-cols-2 gap-4">
@@ -372,47 +471,72 @@ export const Reception: React.FC<ReceptionProps> = ({ hotelData }) => {
                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Nationality</label>
                             <input type="text" value={resForm.nationality} onChange={e => setResForm({...resForm, nationality: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold uppercase text-xs" />
                         </div>
-                        <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Arrival Logic</label>
-                            <input type="date" value={resForm.checkInDate} onChange={e => setResForm({...resForm, checkInDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Release Logic</label>
-                            <input type="date" value={resForm.checkOutDate} onChange={e => setResForm({...resForm, checkOutDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" />
-                        </div>
-                        
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Arrival Logic</label><input type="date" value={resForm.checkInDate} onChange={e => setResForm({...resForm, checkInDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" /></div>
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Release Logic</label><input type="date" value={resForm.checkOutDate} onChange={e => setResForm({...resForm, checkOutDate: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-bold text-xs" /></div>
                         <div className="col-span-2 border-t pt-4">
                              <h4 className="text-[10px] font-black uppercase text-indigo-600 mb-3 tracking-widest">Infrastructure Targeted</h4>
                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Category Hierarchy</label>
-                                    <select value={resForm.roomType} onChange={e => setResForm({...resForm, roomType: e.target.value, roomAssigned: ''})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-black uppercase text-xs">
-                                        {roomTypes.map(rt => <option key={rt.id} value={rt.name}>{rt.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Specific Unit (Optional)</label>
-                                    <select value={resForm.roomAssigned} onChange={e => setResForm({...resForm, roomAssigned: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-black uppercase text-xs">
-                                        <option value="">Auto-Assign Later</option>
-                                        {availableRoomsForType.map(r => <option key={r.id} value={r.number}>Room {r.number}</option>)}
-                                    </select>
-                                </div>
+                                <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Category Hierarchy</label><select value={resForm.roomType} onChange={e => setResForm({...resForm, roomType: e.target.value, roomAssigned: ''})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-black uppercase text-xs">{roomTypes.map(rt => <option key={rt.id} value={rt.name}>{rt.name}</option>)}</select></div>
+                                <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Specific Unit (Optional)</label><select value={resForm.roomAssigned} onChange={e => setResForm({...resForm, roomAssigned: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 font-black uppercase text-xs"><option value="">Auto-Assign Later</option>{availableRoomsForType.map(r => <option key={r.id} value={r.number}>Room {r.number}</option>)}</select></div>
                              </div>
                         </div>
-
-                        <div className="col-span-2">
-                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Special Requirements</label>
-                             <textarea value={resForm.specialRequests} onChange={e => setResForm({...resForm, specialRequests: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 text-xs italic h-20" placeholder="e.g. Late Arrival, Dietary restrictions..." />
-                        </div>
+                        <div className="col-span-2"><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Special Requirements</label><textarea value={resForm.specialRequests} onChange={e => setResForm({...resForm, specialRequests: e.target.value})} className="w-full p-2.5 rounded-lg border dark:bg-slate-800 dark:border-slate-700 text-xs italic h-20" placeholder="e.g. Late Arrival..." /></div>
                     </div>
-                    <div className="pt-6 border-t flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setIsNewReservationModalOpen(false)} className="uppercase font-black text-[10px]">Abort</Button>
-                        <Button onClick={handleNewReservation} className="uppercase font-black text-[10px] px-8">Commit Manifest</Button>
+                    <div className="pt-6 border-t flex justify-end gap-2"><Button variant="secondary" onClick={() => setIsNewReservationModalOpen(false)} className="uppercase font-black text-[10px]">Abort</Button><Button onClick={handleNewReservation} className="uppercase font-black text-[10px] px-8">Commit Manifest</Button></div>
+                </div>
+            </Modal>
+
+            {/* MODAL: POST CHARGE */}
+            <Modal isOpen={isPostChargeModalOpen} onClose={() => setIsPostChargeModalOpen(false)} title="Post Service Outlay">
+                <div className="space-y-4">
+                    <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Service Designation</label><input type="text" value={chargeForm.description} onChange={e => setChargeForm({...chargeForm, description: e.target.value})} className="w-full p-3 border rounded-xl font-black uppercase text-xs bg-slate-50" placeholder="e.g. MINI BAR" /></div>
+                    <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Valuation (₦)</label><input type="number" value={chargeForm.amount} onChange={e => setChargeForm({...chargeForm, amount: e.target.value})} className="w-full p-3 border rounded-xl font-mono font-black text-xl bg-slate-50" /></div>
+                    <div className="pt-4 border-t flex justify-end gap-2"><Button variant="secondary" onClick={() => setIsPostChargeModalOpen(false)} className="uppercase font-black text-[10px]">Abort</Button><Button onClick={() => { if (selectedGuest) { addTransaction({ guestId: selectedGuest.id, description: chargeForm.description, amount: parseFloat(chargeForm.amount) || 0, date: new Date().toISOString().split('T')[0], type: 'charge' }); setChargeForm({ description: '', amount: '' }); setIsPostChargeModalOpen(false); } }} className="uppercase font-black text-[10px] px-8">Commit Posting</Button></div>
+                </div>
+            </Modal>
+
+            {/* MODAL: CHECKOUT */}
+            <Modal isOpen={isCheckoutModalOpen} onClose={() => setIsCheckoutModalOpen(false)} title="Operational Release Cycle">
+                <div className="space-y-6">
+                    <div className="p-6 bg-red-600 text-white rounded-3xl shadow-xl"><p className="text-[10px] font-black uppercase opacity-60 mb-1">Final Settlement Manifest</p><h4 className="text-3xl font-black font-mono tracking-tighter">₦{selectedGuest ? calculateBalance(selectedGuest.id).toLocaleString() : 0}</h4></div>
+                    <div className="space-y-4">
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Settlement Received</label><input type="number" value={checkoutForm.amountPaid} onChange={e => setCheckoutForm({...checkoutForm, amountPaid: e.target.value})} className="w-full p-4 border rounded-2xl font-mono font-black text-2xl text-center bg-slate-50 outline-none focus:border-indigo-600" /></div>
+                        <div><label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Payment Protocol</label><select value={checkoutForm.method} onChange={e => setCheckoutForm({...checkoutForm, method: e.target.value})} className="w-full p-3 border rounded-xl font-black uppercase text-xs bg-slate-50"><option value="Cash">Cash Ledger</option><option value="Card">Bank Terminal</option><option value="Transfer">Direct Bank Flow</option></select></div>
+                    </div>
+                    <div className="pt-6 border-t flex justify-end gap-3"><Button variant="secondary" onClick={() => setIsCheckoutModalOpen(false)} className="uppercase font-black text-[10px] px-8">Abort Release</Button><Button onClick={() => { if (selectedRoom && selectedGuest) { const paid = parseFloat(checkoutForm.amountPaid) || 0; checkOutGuest({ roomId: selectedRoom.id, guestId: selectedGuest.id, payment: paid > 0 ? { description: 'Folio Settlement', amount: -paid, date: new Date().toISOString().split('T')[0], type: 'payment', paymentMethod: checkoutForm.method, receiptNumber: `REC-${Date.now().toString().slice(-6)}` } : undefined }); setIsCheckoutModalOpen(false); } }} className="uppercase font-black text-[10px] px-12 py-4 shadow-xl">Authorize Release</Button></div>
+                </div>
+            </Modal>
+
+            {/* MODAL: GUEST LOOKUP */}
+            <Modal isOpen={isGuestLookupModalOpen} onClose={() => setIsGuestLookupModalOpen(false)} title="Authoritative Guest Registry Lookup">
+                <div className="space-y-6">
+                    <div className="relative"><input type="text" placeholder="Identify profile by nomenclature..." value={lookupSearch} onChange={e => setLookupSearch(e.target.value)} className="w-full p-4 bg-slate-100 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-bold uppercase text-xs focus:border-indigo-600 outline-none" /></div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                        {filteredLookup.map(guest => (
+                            <button key={guest.id} onClick={() => handleSelectExistingGuest(guest)} className="w-full p-4 flex justify-between items-center bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl hover:border-indigo-600 transition-all group">
+                                <div className="text-left"><p className="font-black text-sm uppercase group-hover:text-indigo-600 transition-colors">{guest.name}</p><p className="text-[10px] font-mono text-slate-400 mt-1">{guest.email}</p></div>
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${LOYALTY_TIER_THEME[guest.loyaltyTier].bg} ${LOYALTY_TIER_THEME[guest.loyaltyTier].text}`}>{guest.loyaltyTier}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             </Modal>
 
-            {/* ... Other modals (Induction, Edit Dates, Portfolio) follow standard integration ... */}
+            {/* RELOCATE MODAL */}
+            <Modal isOpen={isMoveModalOpen} onClose={() => setIsMoveModalOpen(false)} title="Unit Relocation Protocol">
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black uppercase text-slate-500 mb-4">Relocating resident {selectedGuest?.name} from Unit {selectedRoom?.number}</p>
+                    <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto">
+                        {rooms.filter(r => r.status === RoomStatus.Vacant).map(r => (
+                            <button key={r.id} onClick={() => handleMoveGuest(r)} className="p-4 border-2 border-slate-100 rounded-2xl hover:border-indigo-600 text-left group transition-all">
+                                <p className="font-black text-xl group-hover:text-indigo-600 uppercase leading-none">Unit {r.number}</p>
+                                <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase">{r.type}</p>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="pt-4 border-t flex justify-end"><Button variant="secondary" onClick={() => setIsMoveModalOpen(false)} className="uppercase font-black text-[10px]">Cancel Relocation</Button></div>
+                </div>
+            </Modal>
         </div>
     );
 };
