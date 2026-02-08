@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { useHotelData } from '../hooks/useHotelData.ts';
 import { Button } from './common/Button.tsx';
 
 export const LoginScreen: React.FC = () => {
@@ -7,6 +9,7 @@ export const LoginScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const { login, loading } = useAuth();
+    const { propertyInfo } = useHotelData();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,9 +26,11 @@ export const LoginScreen: React.FC = () => {
 
     return (
         <div className="flex items-center justify-center h-screen bg-slate-200 dark:bg-slate-900 font-sans">
-            <div className="w-full max-w-md p-10 space-y-8 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div className="w-full max-w-md p-10 space-y-8 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-fade-in-scale">
                 <div className="text-center">
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Smartwave Enterprise HUB</h1>
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight">
+                        {propertyInfo.name}
+                    </h1>
                     <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">Authoritative Staff Authentication</p>
                 </div>
                 <form className="space-y-6" onSubmit={handleSubmit}>

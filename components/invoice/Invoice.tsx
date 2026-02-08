@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { Guest, Transaction, TaxSettings } from '../../types.ts';
 import { Button } from '../common/Button.tsx';
@@ -11,32 +12,43 @@ interface InvoiceProps {
 export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettings }) => {
 
     const invoiceData = useMemo(() => {
-        const charges = transactions.filter(t => t.amount > 0 && !t.description.toLowerCase().includes('tax'));
+        // Find charges that are not taxes
+        const baseCharges = transactions.filter(t => t.amount > 0 && !t.description.includes('%'));
         const payments = transactions.filter(t => t.amount < 0);
-        const taxes = transactions.filter(t => t.amount > 0 && t.description.toLowerCase().includes('tax'));
+        
+        // Use the base charges sum to calculate what the taxes SHOULD be based on CURRENT settings
+        // if they were not already posted as static transactions.
+        const subtotal = baseCharges.reduce((sum, t) => sum + t.amount, 0);
+        
+        // For Receipts, we might want to iterate through active tax nodes
+        const receiptTaxes = taxSettings.isEnabled ? taxSettings.components.filter(c => c.isActive && c.showOnReceipt).map(c => {
+            // Logic: If inclusive, the amount is already in subtotal. We just show it.
+            // If exclusive, the amount is added to total.
+            const taxAmount = subtotal * (c.rate / 100);
+            return {
+                name: c.name,
+                rate: c.rate,
+                amount: taxAmount,
+                isInclusive: c.isInclusive
+            };
+        }) : [];
 
-        const subtotal = charges.reduce((sum, t) => sum + t.amount, 0);
-        const totalTax = taxes.reduce((sum, t) => sum + t.amount, 0);
+        const exclusiveTaxSum = receiptTaxes.filter(t => !t.isInclusive).reduce((s, t) => s + t.amount, 0);
         const totalPayments = payments.reduce((sum, t) => sum + t.amount, 0);
         
-        const totalAmount = subtotal + totalTax;
+        const totalAmount = subtotal + exclusiveTaxSum;
         const balanceDue = totalAmount + totalPayments;
 
         return {
-            charges,
+            baseCharges,
             payments,
-            taxes,
+            receiptTaxes,
             subtotal,
-            totalTax,
             totalPayments,
             totalAmount,
             balanceDue,
         };
-    }, [transactions]);
-
-    const handlePrint = () => {
-        window.print();
-    };
+    }, [transactions, taxSettings]);
 
     return (
         <div className="flex flex-col items-center">
@@ -118,8 +130,8 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
                                 </tr>
                             </thead>
                             <tbody className="border-x border-b">
-                                {invoiceData.charges.map(t => (
-                                    <tr key={`charge-${t.id}`} className="border-b border-slate-100 dark:border-slate-800">
+                                {invoiceData.baseCharges.map(t => (
+                                    <tr key={t.id} className="border-b border-slate-100 dark:border-slate-800">
                                         <td className="p-3 font-mono text-xs text-slate-500">{t.date}</td>
                                         <td className="p-3 font-bold text-xs uppercase">{t.description}</td>
                                         <td className="p-3 font-black text-sm text-right font-mono">{t.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -135,10 +147,14 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
                                 <span>Subtotal</span>
                                 <span className="font-mono text-slate-900 dark:text-white">₦{invoiceData.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                             </div>
-                            <div className="flex justify-between items-center text-xs font-bold uppercase text-slate-500">
-                                <span>Statutory Tax ({taxSettings.rate}%)</span>
-                                <span className="font-mono text-slate-900 dark:text-white">₦{invoiceData.totalTax.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                            </div>
+                            
+                            {invoiceData.receiptTaxes.map((tax, i) => (
+                                <div key={i} className="flex justify-between items-center text-xs font-bold uppercase text-slate-500">
+                                    <span>{tax.name} ({tax.rate}%) {tax.isInclusive ? '[Inc]' : ''}</span>
+                                    <span className="font-mono text-slate-900 dark:text-white">₦{tax.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                </div>
+                            ))}
+
                             <div className="flex justify-between items-center text-lg font-black uppercase pt-3 border-t-2 border-slate-200">
                                 <span className="tracking-tighter">Gross Total</span>
                                 <span className="font-mono text-indigo-600">₦{invoiceData.totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>

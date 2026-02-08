@@ -1,6 +1,7 @@
+
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import type { HotelData, Room, Guest, Reservation, Transaction, LoyaltyTransaction, WalkInTransaction, Order, Employee, SyncLogEntry, AuditLogEntry, MaintenanceRequest, RoomType, TaxSettings, InventoryItem, Supplier, RatePlan, DiscountRule, TaxCharge, CityLedgerAccount, CityLedgerTransaction, InventoryMovement, BaseEntity, PropertyInfo, Staff, Branch, Role, ModulePermissions, CateringAsset, Event, SystemSecuritySettings, SystemIntegrationSettings, Expense, MenuItem, SecurityIncident } from '../types.ts';
-import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_TAX_SETTINGS, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS, INITIAL_STAFF, MENU_ITEMS as STATIC_MENU } from '../constants.tsx';
+import { INITIAL_ROOMS, INITIAL_ROOM_TYPES, INITIAL_RESERVATIONS, INITIAL_INVENTORY, INITIAL_SUPPLIERS, INITIAL_STAFF, MENU_ITEMS as STATIC_MENU } from '../constants.tsx';
 import { RoomStatus as RoomStatusEnum, HousekeepingStatus, UserRole, MaintenanceStatus, PaymentStatus, InventoryCategory, LoyaltyTier } from '../types.ts';
 import { useAuth } from './AuthContext.tsx';
 
@@ -68,7 +69,8 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             timezone: 'Africa/Lagos',
             language: 'English',
             checkInTime: '14:00',
-            checkOutTime: '11:00'
+            checkOutTime: '11:00',
+            brandColor: 'indigo'
         },
         securitySettings: {
           passwordPolicy: 'Strong',
@@ -131,7 +133,12 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         ratePlans: [],
         discountRules: [],
         taxCharges: [],
-        taxSettings: INITIAL_TAX_SETTINGS,
+        taxSettings: {
+            isEnabled: true,
+            components: [
+                { id: 1, name: 'VAT', rate: 7.5, isInclusive: true, showOnReceipt: true, isActive: true, ...createMetadata('SYSTEM') } as TaxCharge
+            ]
+        },
         stopSell: {},
         inventory: INITIAL_INVENTORY.map(i => ({ ...i, category: InventoryCategory.Housekeeping, ...createMetadata('SYSTEM') })) as InventoryItem[],
         suppliers: INITIAL_SUPPLIERS.map(s => ({ ...s, ...createMetadata('SYSTEM') })) as Supplier[],
@@ -141,7 +148,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const [state, setState] = useState<HotelState>(() => {
         try {
-            const savedState = localStorage.getItem('smartwave_pms_prod_v4');
+            const savedState = localStorage.getItem('smartwave_pms_prod_v5');
             return savedState ? JSON.parse(savedState) : INITIAL_STATE;
         } catch (error) {
             return INITIAL_STATE;
@@ -156,7 +163,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('smartwave_pms_prod_v4', JSON.stringify(state));
+        localStorage.setItem('smartwave_pms_prod_v5', JSON.stringify(state));
     }, [state]);
 
     const logAudit = (action: string, entityType: string, entityId?: string | number, details: string = '') => {
@@ -225,8 +232,26 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             const meta = createMetadata(currentUser?.name || 'SYSTEM');
             const newGuest: Guest = { ...payload.guest, id: newGuestId, ...meta };
             const invoiceNum = `INV-${newGuestId.toString().slice(-6)}`;
+            
+            // Calculate multiple taxes for base induction charge
             const transPool = [{ ...payload.charge, id: Date.now() + 1, guestId: newGuestId, type: 'charge', invoiceNumber: invoiceNum, ...meta } as Transaction];
-            if (payload.tax) transPool.push({ ...payload.tax, id: Date.now() + 2, guestId: newGuestId, type: 'charge', invoiceNumber: invoiceNum, ...meta } as Transaction);
+            
+            if (state.taxSettings.isEnabled) {
+                state.taxSettings.components.forEach((comp, idx) => {
+                    if (comp.isActive && !comp.isInclusive) {
+                         transPool.push({
+                            id: Date.now() + 2 + idx,
+                            guestId: newGuestId,
+                            description: `${comp.name} (${comp.rate}%)`,
+                            amount: payload.charge.amount * (comp.rate / 100),
+                            date: newGuest.arrivalDate,
+                            type: 'charge',
+                            invoiceNumber: invoiceNum,
+                            ...meta
+                         } as Transaction);
+                    }
+                });
+            }
 
             setState(prev => ({
                 ...prev,
@@ -308,7 +333,10 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             setState(s => ({ ...s, employees: s.employees.filter(e => e.id !== id) }));
             logAudit('OPERATIVE_REMOVED', 'HR', emp?.name || id, 'Permanent removal of operative identity');
         },
-        addReservation: (r) => setState(s => ({ ...s, reservations: [...s.reservations, { ...r, id: Date.now(), status: 'Pending', paymentStatus: PaymentStatus.Pending, ...createMetadata('SYSTEM') } as Reservation] })),
+        addReservation: (r) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, reservations: [...s.reservations, { ...r, id: Date.now(), status: 'Pending', paymentStatus: PaymentStatus.Pending, ...meta } as Reservation] }));
+        },
         updateGuestDetails: (id, g) => setState(s => ({ ...s, guests: s.guests.map(gu => gu.id === id ? { ...gu, ...g, updatedAt: new Date().toISOString() } : gu) })),
         addMaintenanceRequest: (req) => {
             const meta = createMetadata(currentUser?.name || 'SYSTEM');
@@ -332,7 +360,6 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         updateRoomType: (rt) => setState(s => ({ ...s, roomTypes: s.roomTypes.map(r => r.id === rt.id ? rt : r) })),
         deleteRoomType: (id) => setState(s => ({ ...s, roomTypes: s.roomTypes.filter(r => r.id !== id) })),
         addRoom: (r) => {
-            // Find the associated RoomType to inherit the rate
             const matchingType = state.roomTypes.find(rt => rt.name === r.type);
             const rate = matchingType ? matchingType.rates.NGN : 0;
             
@@ -353,7 +380,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         },
         updateRoom: (r) => setState(s => ({ ...s, rooms: s.rooms.map(room => room.id === r.id ? r : room) })),
         deleteRoom: (id) => setState(s => ({ ...s, rooms: s.rooms.filter(r => r.id !== id) })),
-        clearAllData: () => { localStorage.removeItem('smartwave_pms_prod_v4'); window.location.reload(); },
+        clearAllData: () => { localStorage.removeItem('smartwave_pms_prod_v5'); window.location.reload(); },
         addLoyaltyPoints: (id, pts, desc) => setState(s => ({ ...s, guests: s.guests.map(g => g.id === id ? { ...g, loyaltyPoints: g.loyaltyPoints + pts } : g), loyaltyTransactions: [...s.loyaltyTransactions, { id: Date.now(), guestId: id, points: pts, description: desc, date: new Date().toISOString().split('T')[0] }] })),
         redeemLoyaltyPoints: async (id, pts) => { 
             const g = state.guests.find(g => g.id === id);
@@ -390,16 +417,27 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
         },
         updateEvent: (e) => setState(s => ({ ...s, events: s.events.map(ev => ev.id === e.id ? e : ev) })),
         setStopSell: (st) => setState(s => ({ ...s, stopSell: st })),
-        setTaxSettings: (tx) => setState(s => ({ ...s, taxSettings: tx })),
+        setTaxSettings: (tx) => {
+            setState(s => ({ ...s, taxSettings: tx }));
+            logAudit('TAX_PROTOCOLS_UPDATED', 'Finance', 'System', 'Global tax component matrix modified');
+        },
         addRatePlan: (p) => setState(s => ({ ...s, ratePlans: [...s.ratePlans, { ...p, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as RatePlan] })),
         updateRatePlan: (p) => setState(s => ({ ...s, ratePlans: s.ratePlans.map(rp => rp.id === p.id ? p : rp) })),
         deleteRatePlan: (id) => setState(s => ({ ...s, ratePlans: s.ratePlans.filter(p => p.id !== id) })),
         addDiscountRule: (r) => setState(s => ({ ...s, discountRules: [...s.discountRules, { ...r, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as DiscountRule] })),
         updateDiscountRule: (r) => setState(s => ({ ...s, discountRules: s.discountRules.map(dr => dr.id === r.id ? r : dr) })),
         deleteDiscountRule: (id) => setState(s => ({ ...s, discountRules: s.discountRules.filter(r => r.id !== id) })),
-        addTaxCharge: (c) => setState(s => ({ ...s, taxCharges: [...s.taxCharges, { ...c, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as TaxCharge] })),
-        updateTaxCharge: (c) => setState(s => ({ ...s, taxCharges: s.taxCharges.map(tc => tc.id === c.id ? c : tc) })),
-        deleteTaxCharge: (id) => setState(s => ({ ...s, taxCharges: s.taxCharges.filter(c => c.id !== id) })),
+        addTaxCharge: (c) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            const newComp = { ...c, id: Date.now(), ...meta } as TaxCharge;
+            setState(s => ({ ...s, taxSettings: { ...s.taxSettings, components: [...s.taxSettings.components, newComp] } }));
+        },
+        updateTaxCharge: (c) => {
+            setState(s => ({ ...s, taxSettings: { ...s.taxSettings, components: s.taxSettings.components.map(comp => comp.id === c.id ? c : comp) } }));
+        },
+        deleteTaxCharge: (id) => {
+            setState(s => ({ ...s, taxSettings: { ...s.taxSettings, components: s.taxSettings.components.filter(c => c.id !== id) } }));
+        },
         addExpense: (ex) => {
             const meta = createMetadata(currentUser?.name || 'SYSTEM');
             setState(s => ({ ...s, expenses: [...s.expenses, { ...ex, id: Date.now(), ...meta } as Expense] }));

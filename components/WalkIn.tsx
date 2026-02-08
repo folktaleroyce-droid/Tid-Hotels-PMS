@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card } from './common/Card.tsx';
 import { Button } from './common/Button.tsx';
@@ -31,19 +32,23 @@ export const WalkIn: React.FC = () => {
     
     const occupiedRooms = useMemo(() => rooms.filter(r => r.status === RoomStatus.Occupied && r.guestId), [rooms]);
 
-    const { taxAmount, amountDue, balance } = useMemo(() => {
+    // FIX: Derived effective tax rate and tax amount from active components in TaxSettings.
+    const { taxAmount, amountDue, balance, totalTaxRate } = useMemo(() => {
         const subtotal = parseFloat(formState.amount) || 0;
         const discount = parseFloat(formState.discount) || 0;
         const paid = formState.guestType === 'In-House' ? 0 : (parseFloat(formState.amountPaid) || 0);
         
         const taxableAmount = subtotal - discount;
-        const tax = (taxSettings.isEnabled && taxSettings.rate > 0 && taxableAmount > 0) 
-            ? taxableAmount * (taxSettings.rate / 100) 
+        const activeTaxes = taxSettings.isEnabled ? taxSettings.components.filter(c => c.isActive && !c.isInclusive) : [];
+        const combinedRate = activeTaxes.reduce((sum, t) => sum + t.rate, 0);
+
+        const tax = (taxSettings.isEnabled && combinedRate > 0 && taxableAmount > 0) 
+            ? taxableAmount * (combinedRate / 100) 
             : 0;
 
         const due = Math.max(0, taxableAmount + tax);
         const bal = due - paid;
-        return { taxAmount: tax, amountDue: due, balance: bal };
+        return { taxAmount: tax, amountDue: due, balance: bal, totalTaxRate: combinedRate };
     }, [formState.amount, formState.discount, formState.amountPaid, formState.guestType, taxSettings]);
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -278,7 +283,7 @@ export const WalkIn: React.FC = () => {
 
                         <div className="p-3 space-y-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
                             <div className="flex justify-between items-center text-[10px] font-black uppercase">
-                                <span className="text-slate-500">Statutory Levy ({taxSettings.rate}%):</span>
+                                <span className="text-slate-500">Statutory Levy ({totalTaxRate}%):</span>
                                 <span className="text-slate-800 dark:text-slate-200">
                                     {formState.currency === 'NGN' ? '₦' : '$'}{taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                 </span>

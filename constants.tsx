@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings, Staff, UserRole, InventoryItem, Supplier, InventoryCategory } from './types.ts';
+import { Room, Guest, Transaction, Order, Employee, RoomStatus, Reservation, MaintenanceRequest, MaintenanceStatus, MaintenancePriority, PaymentStatus, LoyaltyTier, LoyaltyTransaction, WalkInTransaction, RoomType, TaxSettings, Staff, UserRole, InventoryItem, Supplier, InventoryCategory, TaxCharge } from './types.ts';
 
 const today = new Date();
 const tomorrow = new Date(today);
@@ -36,9 +36,12 @@ export const CURRENCIES: Array<'NGN' | 'USD'> = ['NGN', 'USD'];
 
 export const DEPARTMENTS = [ 'Management', 'Front Office', 'Housekeeping', 'Food & Beverage', 'Kitchen', 'Maintenance', 'Sales & Marketing', 'Human Resources', 'Finance' ];
 
+// FIX: Updated INITIAL_TAX_SETTINGS to use components array as required by the TaxSettings type.
 export const INITIAL_TAX_SETTINGS: TaxSettings = {
     isEnabled: true,
-    rate: 7.5,
+    components: [
+        { id: 1, name: 'VAT', rate: 7.5, isInclusive: true, showOnReceipt: true, isActive: true } as any
+    ],
 };
 
 // FIX: Removed strict type annotation to allow partial objects before BaseEntity fields are added by the provider.

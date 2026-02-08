@@ -101,6 +101,7 @@ export interface PropertyInfo {
   logo?: string;
   checkInTime: string;
   checkOutTime: string;
+  brandColor?: string; // e.g. 'indigo', 'emerald', 'rose'
 }
 
 export interface BaseEntity {
@@ -230,7 +231,13 @@ export interface TaxCharge extends BaseEntity {
   name: string;
   rate: number;
   isInclusive: boolean;
+  showOnReceipt: boolean;
   isActive: boolean;
+}
+
+export interface TaxSettings {
+    isEnabled: boolean;
+    components: TaxCharge[];
 }
 
 export interface Guest extends BaseEntity {
@@ -309,6 +316,7 @@ export interface InventoryMovement extends BaseEntity {
 
 export interface Reservation extends BaseEntity {
     id: number;
+    guestId?: number; // Linked existing guest
     guestName: string;
     guestEmail: string;
     guestPhone: string;
@@ -373,11 +381,6 @@ export enum MaintenancePriority {
     High = 'High',
 }
 
-export interface TaxSettings {
-    isEnabled: boolean;
-    rate: number;
-}
-
 export enum InventoryCategory {
     Housekeeping = 'Housekeeping',
     Kitchen = 'Kitchen',
@@ -398,6 +401,10 @@ export interface InventoryItem extends BaseEntity {
     supplierId?: number;
     expiryDate?: string;
     location?: string;
+}
+
+export interface ProxyGuest extends Omit<Guest, keyof BaseEntity | 'id'> {
+    id?: number;
 }
 
 export interface Supplier extends BaseEntity {
