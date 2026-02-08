@@ -54,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView })
   const brandId = propertyInfo.brandColor || 'indigo';
   
   const brandColorMap: Record<string, string> = {
-      indigo: '#4f46e5', emerald: '#10b981', rose: '#e11d48', amber: '#f59e0b', sky: '#0ea5e9', slate: '#334155'
+      indigo: '#4f46e5', emerald: '#10b981', rose: '#e11d48', amber: '#f59e0b', sky: '#0ea5e9', slate: '#334155',
+      violet: '#8b5cf6', orange: '#f97316', teal: '#14b8a6', fuchsia: '#d946ef', lime: '#84cc16', cyan: '#06b6d4'
   };
 
   const activeColor = brandColorMap[brandId];

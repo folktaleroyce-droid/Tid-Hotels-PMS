@@ -89,6 +89,14 @@ export interface SystemIntegrationSettings {
   accountingSoftware: string;
 }
 
+export interface BankAccount {
+    id: string;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    isPrimary: boolean;
+}
+
 export interface PropertyInfo {
   name: string;
   tagline?: string;
@@ -96,9 +104,7 @@ export interface PropertyInfo {
   phone: string;
   email: string;
   website: string;
-  bankName?: string;
-  accountNumber?: string;
-  accountName?: string;
+  bankAccounts: BankAccount[];
   currency: 'NGN' | 'USD';
   timezone: string;
   language: string;

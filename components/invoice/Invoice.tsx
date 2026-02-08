@@ -15,7 +15,8 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
     const brandColor = propertyInfo.brandColor || 'indigo';
 
     const colorMap: Record<string, string> = {
-        indigo: '#4f46e5', emerald: '#10b981', rose: '#e11d48', amber: '#f59e0b', sky: '#0ea5e9', slate: '#334155'
+        indigo: '#4f46e5', emerald: '#10b981', rose: '#e11d48', amber: '#f59e0b', sky: '#0ea5e9', slate: '#334155',
+        violet: '#8b5cf6', orange: '#f97316', teal: '#14b8a6', fuchsia: '#d946ef', lime: '#84cc16', cyan: '#06b6d4'
     };
     const accentColor = colorMap[brandColor];
 
@@ -116,11 +117,16 @@ export const Invoice: React.FC<InvoiceProps> = ({ guest, transactions, taxSettin
                     <div className="grid grid-cols-2 gap-16 pt-8 border-t-2 border-slate-100 dark:border-slate-800">
                         <div className="space-y-4">
                             <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
-                                <h3 className="font-black text-[9px] uppercase tracking-widest mb-3" style={{ color: accentColor }}>Fiscal Settlement Terms</h3>
-                                <div className="space-y-2 text-[10px] font-bold uppercase text-slate-500">
-                                    <p>Bank: <span className="text-slate-900 dark:text-white">{propertyInfo.bankName || 'NOT DECLARED'}</span></p>
-                                    <p>Account: <span className="text-slate-900 dark:text-white font-mono">{propertyInfo.accountNumber || 'NOT DECLARED'}</span></p>
-                                    <p>Holder: <span className="text-slate-900 dark:text-white">{propertyInfo.accountName || 'NOT DECLARED'}</span></p>
+                                <h3 className="font-black text-[9px] uppercase tracking-widest mb-3" style={{ color: accentColor }}>Fiscal Settlement Nodes</h3>
+                                <div className="space-y-4">
+                                    {propertyInfo.bankAccounts.map((acc, i) => (
+                                        <div key={acc.id} className={`text-[10px] uppercase ${i > 0 ? 'pt-2 border-t border-slate-100 dark:border-slate-800' : ''}`}>
+                                            <p className="font-black text-slate-900 dark:text-white">{acc.bankName}</p>
+                                            <p className="text-slate-500 font-mono">A/C: {acc.accountNumber}</p>
+                                            <p className="text-slate-500">{acc.accountName}</p>
+                                        </div>
+                                    ))}
+                                    {propertyInfo.bankAccounts.length === 0 && <p className="text-[10px] text-slate-400">CONTACT FRONT DESK FOR SETTLEMENT NODES</p>}
                                 </div>
                             </div>
                             <div className="text-[8px] font-bold text-slate-400 uppercase leading-relaxed italic">
