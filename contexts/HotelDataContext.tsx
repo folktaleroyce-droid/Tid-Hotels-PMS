@@ -130,7 +130,9 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
           { id: 2, name: 'Dinner Plates (Set of 50)', quantityTotal: 10, quantityAvailable: 10, condition: 'Good', ...createMetadata('SYSTEM') },
         ],
         events: [],
-        ratePlans: [],
+        ratePlans: [
+            { id: 1, name: 'STANDARD RACK', description: 'Default system pricing manifest', roomTypeId: 1, rates: { NGN: 45000, USD: 60 }, isActive: true, ...createMetadata('SYSTEM') }
+        ],
         discountRules: [],
         taxCharges: [],
         taxSettings: {
@@ -389,6 +391,17 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             setState(s => ({ ...s, guests: s.guests.map(guest => guest.id === id ? { ...guest, loyaltyPoints: guest.loyaltyPoints - pts } : guest) }));
             return { success: true, message: 'Points redeemed' };
         },
+        addRatePlan: (p) => {
+            const meta = createMetadata(currentUser?.name || 'SYSTEM');
+            setState(s => ({ ...s, ratePlans: [...s.ratePlans, { ...p, id: Date.now(), ...meta } as RatePlan] }));
+            logAudit('RATE_PLAN_CREATED', 'Infrastructure', p.name, 'New named Rack Rate manifest archived');
+        },
+        updateRatePlan: (p) => setState(s => ({ ...s, ratePlans: s.ratePlans.map(rp => rp.id === p.id ? p : rp) })),
+        deleteRatePlan: (id) => {
+            const plan = state.ratePlans.find(p => p.id === id);
+            setState(s => ({ ...s, ratePlans: s.ratePlans.filter(p => p.id !== id) }));
+            logAudit('RATE_PLAN_REVOKED', 'Infrastructure', plan?.name || id, 'Named pricing tier removed from registry');
+        },
         addCityLedgerAccount: (a) => setState(s => ({ ...s, cityLedgerAccounts: [...s.cityLedgerAccounts, { ...a, id: Date.now(), currentBalance: 0, ...createMetadata(currentUser?.name || 'SYSTEM') } as CityLedgerAccount] })),
         postToCityLedger: (t) => {
             setState(s => ({ ...s, cityLedgerTransactions: [...s.cityLedgerTransactions, { ...t, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as CityLedgerTransaction] }));
@@ -422,9 +435,6 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             setState(s => ({ ...s, taxSettings: tx }));
             logAudit('TAX_PROTOCOLS_UPDATED', 'Finance', 'System', 'Global tax component matrix modified');
         },
-        addRatePlan: (p) => setState(s => ({ ...s, ratePlans: [...s.ratePlans, { ...p, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as RatePlan] })),
-        updateRatePlan: (p) => setState(s => ({ ...s, ratePlans: s.ratePlans.map(rp => rp.id === p.id ? p : rp) })),
-        deleteRatePlan: (id) => setState(s => ({ ...s, ratePlans: s.ratePlans.filter(p => p.id !== id) })),
         addDiscountRule: (r) => setState(s => ({ ...s, discountRules: [...s.discountRules, { ...r, id: Date.now(), ...createMetadata(currentUser?.name || 'SYSTEM') } as DiscountRule] })),
         updateDiscountRule: (r) => setState(s => ({ ...s, discountRules: s.discountRules.map(dr => dr.id === r.id ? r : dr) })),
         deleteDiscountRule: (id) => setState(s => ({ ...s, discountRules: s.discountRules.filter(r => r.id !== id) })),
