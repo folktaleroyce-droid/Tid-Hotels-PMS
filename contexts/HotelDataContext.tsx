@@ -289,6 +289,7 @@ export const HotelDataProvider: React.FC<{ children: ReactNode }> = ({ children 
             addSyncLogEntry(`Reservation #${id} for ${res.guestName} Approved`, 'success');
         },
         addSyncLogEntry,
+        logAudit,
         updateRoomStatus: (id, status, guestId, notes) => {
             const room = state.rooms.find(r => r.id === id);
             setState(s => ({ 

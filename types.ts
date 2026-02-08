@@ -483,6 +483,7 @@ export interface HotelData {
   updateReservation: (reservation: Reservation) => void;
   approveReservation: (id: number) => void;
   addSyncLogEntry: (message: string, level?: SyncLogEntry['level']) => void;
+  logAudit: (action: string, entityType: string, entityId?: string | number, details?: string) => void;
   updateRate: (roomType: string, newRate: number, currency: 'NGN' | 'USD') => void;
   updateGuestDetails: (guestId: number, updatedGuest: Partial<Guest>) => void;
   addMaintenanceRequest: (request: Omit<MaintenanceRequest, keyof BaseEntity | 'id' | 'reportedAt' | 'status'>) => void;
