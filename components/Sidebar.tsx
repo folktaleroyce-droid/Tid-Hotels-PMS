@@ -24,8 +24,8 @@ const NavItem: React.FC<{
   setCurrentView: (view: View) => void;
   icon: React.ReactNode;
   label: string;
-  brandColorClass: string;
-}> = ({ view, currentView, setCurrentView, icon, label, brandColorClass }) => (
+  activeColor: string;
+}> = ({ view, currentView, setCurrentView, icon, label, activeColor }) => (
   <li>
     <a
       href="#"
@@ -35,9 +35,10 @@ const NavItem: React.FC<{
       }}
       className={`flex items-center px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all group ${
         currentView === view
-          ? `${brandColorClass} text-white shadow-xl ring-2 ring-white/10`
+          ? `text-white shadow-xl ring-2 ring-white/10`
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
       }`}
+      style={{ backgroundColor: currentView === view ? activeColor : 'transparent' }}
     >
       <div className={`${currentView === view ? 'text-white' : 'text-slate-400 group-hover:text-indigo-500 group-hover:scale-110 transition-transform'}`}>{icon}</div>
       <span className="ml-4 truncate">{label}</span>
@@ -50,18 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView })
   const { propertyInfo, systemModules } = useHotelData();
 
   const isSuperAdmin = currentUser?.role === UserRole.SuperAdmin;
-  const brandColor = propertyInfo.brandColor || 'indigo';
+  const brandId = propertyInfo.brandColor || 'indigo';
   
   const brandColorMap: Record<string, string> = {
-      indigo: 'bg-indigo-600 shadow-indigo-600/30',
-      emerald: 'bg-emerald-600 shadow-emerald-600/30',
-      rose: 'bg-rose-600 shadow-rose-600/30',
-      amber: 'bg-amber-600 shadow-amber-600/30',
-      sky: 'bg-sky-600 shadow-sky-600/30',
-      slate: 'bg-slate-700 shadow-slate-700/30'
+      indigo: '#4f46e5', emerald: '#10b981', rose: '#e11d48', amber: '#f59e0b', sky: '#0ea5e9', slate: '#334155'
   };
 
-  const brandColorClass = brandColorMap[brandColor];
+  const activeColor = brandColorMap[brandId];
 
   return (
     <aside className="w-72 bg-white dark:bg-slate-950 border-r-2 border-slate-100 dark:border-slate-900 print:hidden overflow-y-auto flex flex-col" aria-label="Sidebar">
@@ -70,51 +66,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView })
             <h2 className="text-xl font-black text-slate-900 dark:text-white leading-none uppercase tracking-tighter">
                 SMARTWAVE<br/>ENTERPRISE HUB
             </h2>
-            <p className={`text-[8px] font-black uppercase text-white tracking-[0.4em] mt-3 py-1 px-2 rounded inline-block ${brandColorClass}`}>Cloud Node V5</p>
+            <p className="text-[8px] font-black uppercase text-white tracking-[0.4em] mt-3 py-1 px-3 rounded-full inline-block shadow-lg" style={{ backgroundColor: activeColor }}>Cloud Node V5</p>
         </div>
         
         <nav className="flex-1">
           <ul className="space-y-2">
             {isSuperAdmin && (
               <div className="mb-8">
-                <NavItem view="super-admin" currentView={currentView} setCurrentView={setCurrentView} icon={<SuperAdminIcon />} label="System Kernel" brandColorClass={brandColorClass} />
+                <NavItem view="super-admin" currentView={currentView} setCurrentView={setCurrentView} icon={<SuperAdminIcon />} label="System Kernel" activeColor={activeColor} />
                 <div className="mt-6 border-t-2 border-slate-100 dark:border-slate-900"></div>
               </div>
             )}
             
-            <NavItem view="dashboard" currentView={currentView} setCurrentView={setCurrentView} icon={<DashboardIcon />} label="Terminal Over" brandColorClass={brandColorClass} />
-            
-            {systemModules.reception && (
-              <NavItem view="reception" currentView={currentView} setCurrentView={setCurrentView} icon={<ReceptionIcon />} label="Front Office" brandColorClass={brandColorClass} />
-            )}
-            
-            {systemModules.finance && (
-              <NavItem view="accounts" currentView={currentView} setCurrentView={setCurrentView} icon={<AccountsIcon />} label="Fiscal Engine" brandColorClass={brandColorClass} />
-            )}
-            
-            {systemModules.housekeeping && (
-              <NavItem view="housekeeping" currentView={currentView} setCurrentView={setCurrentView} icon={<HousekeepingIcon />} label="Facility Hygn" brandColorClass={brandColorClass} />
-            )}
-            
-            {systemModules.inventory && (
-              <NavItem view="inventory" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>} label="Logistics" brandColorClass={brandColorClass} />
-            )}
-            
-            {systemModules.restaurant && (
-              <NavItem view="restaurant" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>} label="POS Terminal" brandColorClass={brandColorClass} />
-            )}
-            
-            {systemModules.maintenance && (
-              <NavItem view="maintenance" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Engineering" brandColorClass={brandColorClass} />
-            )}
-
-            <NavItem view="people-and-culture" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Human Factor" brandColorClass={brandColorClass} />
+            <NavItem view="dashboard" currentView={currentView} setCurrentView={setCurrentView} icon={<DashboardIcon />} label="Terminal Over" activeColor={activeColor} />
+            {systemModules.reception && <NavItem view="reception" currentView={currentView} setCurrentView={setCurrentView} icon={<ReceptionIcon />} label="Front Office" activeColor={activeColor} />}
+            {systemModules.finance && <NavItem view="accounts" currentView={currentView} setCurrentView={setCurrentView} icon={<AccountsIcon />} label="Fiscal Engine" activeColor={activeColor} />}
+            {systemModules.housekeeping && <NavItem view="housekeeping" currentView={currentView} setCurrentView={setCurrentView} icon={<HousekeepingIcon />} label="Facility Hygn" activeColor={activeColor} />}
+            {systemModules.inventory && <NavItem view="inventory" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>} label="Logistics" activeColor={activeColor} />}
+            {systemModules.restaurant && <NavItem view="restaurant" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>} label="POS Terminal" activeColor={activeColor} />}
+            {systemModules.maintenance && <NavItem view="maintenance" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Engineering" activeColor={activeColor} />}
+            <NavItem view="people-and-culture" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Human Factor" activeColor={activeColor} />
           </ul>
         </nav>
         
         <div className="pt-8 mt-12 border-t-2 border-slate-100 dark:border-slate-900">
           <ul className="space-y-2">
-            <NavItem view="settings" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Config" brandColorClass={brandColorClass} />
+            <NavItem view="settings" currentView={currentView} setCurrentView={setCurrentView} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>} label="Config" activeColor={activeColor} />
           </ul>
         </div>
       </div>
